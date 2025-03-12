@@ -1,4 +1,4 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
     host: 'localhost',
@@ -9,4 +9,105 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
-module.exports = pool.promise();
+
+async function getUserByCardIdAndIdPar(cardID, parID) {
+    try {
+        const query = "SELECT * FROM users WHERE card_id = ? AND id_parish = ?";
+        const [rows] = await pool.execute(query, [cardID, parID]);
+        return rows[0] !==undefined ? rows[0]: null ;
+    } catch (error) {
+        console.error("Błąd w getUserByCardIdAndIdPar:", error);
+        throw error;
+    }
+}
+
+async function getServicesByTimeStamp(timeStamp, parID){
+    const [selected_date, selected_time] = timeStamp.split(" ");
+    const tableName = `${parID}_services`;
+        const query = `
+    SELECT name, time_service FROM \`${tableName}\`
+    WHERE 
+       (
+            (date_service = ? AND time_service = ? 
+                AND day_of_month IS NULL AND day_of_week IS NULL AND month_from IS NULL AND month_to IS NULL 
+                AND first_friday = FALSE AND first_saturday = FALSE
+            )
+         
+            OR (
+                day_of_month = DAY(?) 
+                AND MONTH(?) BETWEEN month_from AND month_to
+                AND time_service = ?
+                AND date_service IS NULL AND day_of_week IS NULL AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+
+            OR (
+                ( first_friday = TRUE OR first_saturday = TRUE) 
+                AND day_of_week = DAYOFWEEK(?) - 1
+                AND time_service = ?
+                AND DAY(?) <= 7
+                AND date_service IS NULL AND day_of_month IS NULL AND month_from IS NULL AND month_to IS NULL
+            )
+
+            OR (
+                day_of_month = DAY(?) 
+                AND time_service = ?
+                AND date_service IS NULL AND day_of_week IS NULL AND month_from IS NULL AND month_to IS NULL 
+                AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+
+            OR (
+                day_of_week = DAYOFWEEK(?) - 1 
+                AND MONTH(?) BETWEEN month_from AND month_to
+                AND day_of_month = DAY(?) 
+                AND time_service = ?
+                AND date_service IS NULL  AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+
+            OR (
+                day_of_week = DAYOFWEEK(?) - 1 
+                AND MONTH(?) BETWEEN month_from AND month_to
+                AND time_service = ?
+                AND date_service IS NULL AND day_of_month IS NULL AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+
+            OR (
+                time_service = ?
+                AND MONTH(?) BETWEEN month_from AND month_to
+                AND DAYOFWEEK(?) != 1
+                AND date_service IS NULL AND day_of_month IS NULL  AND first_friday = FALSE AND first_saturday = FALSE 
+                AND day_of_week IS NULL
+            )
+
+            OR (
+                day_of_week = DAYOFWEEK(?) - 1 
+                AND time_service = ?
+                AND date_service IS NULL AND day_of_month IS NULL AND month_from IS NULL AND month_to IS NULL 
+                AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+
+            OR (
+                time_service = ?
+                AND date_service IS NULL AND day_of_week IS NULL AND day_of_month IS NULL 
+                AND month_from IS NULL AND month_to IS NULL AND first_friday = FALSE AND first_saturday = FALSE 
+            )
+        )
+    ORDER BY priority ASC  
+    LIMIT 1;
+    `;
+
+        try {
+            const [rows] = await pool.execute(query, [
+                selected_date, selected_time, selected_date, selected_date, selected_time, selected_date,
+                selected_time, selected_date, selected_date, selected_time, selected_date, selected_date,
+                selected_date, selected_time, selected_date, selected_date, selected_time, selected_time,
+                selected_date, selected_date, selected_time, selected_date, selected_time
+            ]);
+            console.log(rows);
+            return rows[0] !==undefined ? rows[0]: null ;
+    }catch (error) {
+        console.error("Błąd zapytania SQL:", error);
+        throw error;
+    }
+
+}
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp};
