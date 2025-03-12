@@ -6,6 +6,8 @@ import requests
 from datetime import datetime
 import RPi.GPIO as GPIO
 from mfrc522 import SimpleMFRC522
+#stałe
+PAR_ID = "PRM001"
 # inicjalizacja Pygame
 pygame.init()
 
@@ -204,7 +206,7 @@ while running:
         if id:
             last_rfid_time = time.time()  # Zapisz czas ostatniego odczytu
             currnet_time = datetime.now().strftime("%d-%m-%Y %H:%M")
-            payload = {"card_id":str(id), "timestamp": currnet_time}
+            payload = {"card_id":str(id), "timestamp": currnet_time,"id_par": PAR_ID}
             headers = {"Content-Type": "application/json"}
             
             #sprawdzanie połączenia z serverem
