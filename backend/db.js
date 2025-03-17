@@ -125,15 +125,72 @@ function subtractMinutes(timeString, minutesToSubtract) {
 async function addReading(cardId, timeStamp, nameService, timeService, idPar){
     const [date, time] = timeStamp.split(" ");
     const tableName = `${idPar}_readings`;
-  //  console.log(cardId, date, time, nameService, timeService, idPar, tableName );
-    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service) VALUES (?,?,?,?,?)`;
-    try {
-        const [result] = await  pool.execute(query,[cardId, date, time, nameService, timeService]);
-        return result.affectedRows === 1;
-    }catch (error){
-        console.error("Błąd dodania odczytu", error);
+    const duplicate = await checkDuplicateReading(cardId,date,timeService,tableName,true);
+    //console.log(cardId, date, time, nameService, timeService, idPar, tableName );
+    if(!duplicate)
+    {
+        const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
+                       VALUES (?, ?, ?, ?, ?)`;
+        try {
+            const [result] = await pool.execute(query, [cardId, date, time, nameService, timeService]);
+            return result.affectedRows === 1;
+        } catch (error) {
+            console.error("Błąd dodania odczytu", error);
+            throw error;
+        }
+    }else {
+        return false;
+    }
+}
+
+async function addOtherReading(cardId, timeStamp, idPar){
+        const [date, time] = timeStamp.split(" ");
+        const tableName = `${idPar}_readings`;
+        const duplicate = await checkDuplicateReading(cardId,date,time,tableName);
+        if(!duplicate) {
+            const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
+                           VALUES (?, ?, ?, 'Inne nabożeństwo', ?)`;
+            try {
+                const [result] = await pool.execute(query, [cardId, date, time, time]);
+                if (result.affectedRows === 1) {
+                    return {
+                        name: "Inne nabożeństwo",
+                        time: time,
+                        points: 5,
+                        message: "Nieznane nabożeństwo"
+                    }
+                }
+            } catch (error) {
+                console.error("Nie udało sie dodać", error);
+                throw error;
+            }
+        }else{
+            return false;
+        }
+}
+async function checkDuplicateReading(cardId, dateRead, timeService, tableName, flag=false){
+    let query;
+    let params;
+    const newTime_0 = subtractMinutes(timeService, 45);
+    const newTime_1 = subtractMinutes(timeService, -45);
+    if (flag) {
+        query = `SELECT COUNT(*) AS count
+                 FROM \`${tableName}\`
+                 WHERE card_id=? AND date_read=? AND time_service=?`;
+        params = [cardId, dateRead, timeService];
+    } else {
+        query = `SELECT COUNT(*) AS count
+                 FROM \`${tableName}\`
+                 WHERE card_id=? AND date_read=? AND time_service BETWEEN ? AND ?`;
+        params = [cardId, dateRead, newTime_0, newTime_1];
+    }
+    try{
+        const [result] = await pool.execute(query,params);
+        console.log(result[0].count);
+        return result[0].count >0;
+    }catch(error){
+        console.error("Błąd wyszukiwania duplikatu", error);
         throw error;
     }
-
 }
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading};
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading};

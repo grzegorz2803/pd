@@ -1,5 +1,5 @@
 const express = require('express');
-const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading} = require('./db')
+const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading} = require('./db')
 const router = express.Router();
 
 router.get('/data', (req, res) => {
@@ -33,7 +33,12 @@ router.post("/data", async (req, res) => {
                     res.status(501).json("Duplikat!!!");
                 }
             }else {
-                res.status(200).json("Inne nabożeństwo");
+                const serviceAdded = await  addOtherReading(card_id,timestamp, id_par);
+                if(serviceAdded) {
+                    res.status(200).json(serviceAdded);
+                }else {
+                    res.status(501).json("Duplikat!!!");
+                }
             }
 
         }else{
