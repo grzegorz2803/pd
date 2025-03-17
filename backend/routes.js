@@ -1,5 +1,5 @@
 const express = require('express');
-const {getUserByCardIdAndIdPar, getServicesByTimeStamp} = require('./db')
+const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading} = require('./db')
 const router = express.Router();
 
 router.get('/data', (req, res) => {
@@ -11,13 +11,31 @@ router.get('/data', (req, res) => {
 });
 // Endpoint do odbioru danych
 router.post("/data", async (req, res) => {
-    let result;
+
     try {
         const {card_id, timestamp, id_par} = req.body;
-        result = await getUserByCardIdAndIdPar(card_id, id_par);
-        if(result !== null){
-            getServicesByTimeStamp(timestamp,id_par);
-             res.status(200).json(result);
+        const person = await getUserByCardIdAndIdPar(card_id, id_par);
+        if(person !== null){
+            const service = await getServicesByTimeStamp(timestamp,id_par);
+            if(service!==null) {
+                const {name, time_service, points} = service;
+                const {card_id} = person;
+                const serviceAdded = await addReading(card_id, timestamp, name, time_service, id_par);
+                if(serviceAdded){
+                    const result = {
+                        name: name,
+                        time: time_service,
+                        points: points,
+                        message: "Dodano"
+                    };
+                    res.status(200).json(result);
+                }else {
+                    res.status(501).json("Duplikat!!!");
+                }
+            }else {
+                res.status(200).json("Inne nabożeństwo");
+            }
+
         }else{
             res.status(400).json("Brak użytkownika w bazie");
         }

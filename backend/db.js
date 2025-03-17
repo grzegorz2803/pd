@@ -16,7 +16,7 @@ async function getUserByCardIdAndIdPar(cardID, parID) {
         const [rows] = await pool.execute(query, [cardID, parID]);
         return rows[0] !==undefined ? rows[0]: null ;
     } catch (error) {
-        console.error("Błąd w getUserByCardIdAndIdPar:", error);
+        console.error("Błąd znalezienia usera:", error);
         throw error;
     }
 }
@@ -25,11 +25,11 @@ async function getServicesByTimeStamp(timeStamp, parID){
     const [selected_date, selected_time] = timeStamp.split(" ");
     const newTime_0 = subtractMinutes(selected_time, 15);
     const newTime_1 = subtractMinutes(selected_time, -15);
-    console.log(newTime_0);
-    console.log(newTime_1);
+  //  console.log(newTime_0);
+  //  console.log(newTime_1);
     const tableName = `${parID}_services`;
         const query = `
-    SELECT name, time_service FROM \`${tableName}\`
+    SELECT name, time_service, points  FROM \`${tableName}\`
     WHERE 
        (
             (date_service = ? AND time_service BETWEEN ? AND ?
@@ -106,10 +106,10 @@ async function getServicesByTimeStamp(timeStamp, parID){
                 selected_date, newTime_0, newTime_1, selected_date, selected_date, newTime_0, newTime_1, newTime_0, newTime_1,
                 selected_date, selected_date, selected_date,newTime_0, newTime_1, newTime_0, newTime_1
             ]);
-            console.log(rows);
+          //  console.log(rows);
             return rows[0] !==undefined ? rows[0]: null ;
     }catch (error) {
-        console.error("Błąd zapytania SQL:", error);
+        console.error("Błąd wyszukania nabożeństwa w bazie danych:", error);
         throw error;
     }
 
@@ -122,4 +122,18 @@ function subtractMinutes(timeString, minutesToSubtract) {
 
     return date.toTimeString().slice(0, 8); // Format HH:MM:SS
 }
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp};
+async function addReading(cardId, timeStamp, nameService, timeService, idPar){
+    const [date, time] = timeStamp.split(" ");
+    const tableName = `${idPar}_readings`;
+  //  console.log(cardId, date, time, nameService, timeService, idPar, tableName );
+    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service) VALUES (?,?,?,?,?)`;
+    try {
+        const [result] = await  pool.execute(query,[cardId, date, time, nameService, timeService]);
+        return result.affectedRows === 1;
+    }catch (error){
+        console.error("Błąd dodania odczytu", error);
+        throw error;
+    }
+
+}
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading};
