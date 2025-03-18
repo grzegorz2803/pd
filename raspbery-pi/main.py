@@ -49,7 +49,7 @@ buzzer = GPIO.PWM(BUZZER_PIN, 1000)
 
 
 #Adres serwera API
-SERVER_URL = "http://192.168.1.193:3000/data"
+SERVER_URL = "http://192.168.1.193:3000/api/data"
 OFFLINE_FILE = "offline_log.json"
 
 #Czcionki 
@@ -65,6 +65,17 @@ rfid_message = None # Wiadomość  z serwera
 SYNC_HOURS = ["05:00","14:12"]
 last_sync_date = None
 
+# funkcja do skalowania tekstu
+def get_scaled_font(lines, max_width, max_height, base_size=80):
+    font_size = base_size
+    font = pygame.font.Font(None, font_size)
+    while any(font.size(line)[0] > max_width for line in lines) or (font.get_height() * len(lines) > max_height):
+        font_size -= 2
+        if font_size < 20:
+            break
+        font = pygame.font.Font(None, font_size)
+    return font
+    
 #Sprawdzenie dostępności serwera
 def check_server():
     try:
@@ -185,7 +196,7 @@ while running:
     
     # Pobranie aktualnej daty i godziny
     now = datetime.now()
-    date_string = now.strftime("%d-%m-%Y")      # Format: 2025-02-06
+    date_string = now.strftime("%Y-%m-%d")      # Format: 2025-02-06
     weekday_string = now.strftime("%A")         # Nazwa dnia tygodnia (angielska)
     time_string = now.strftime("%H:%M:%S")      # Format: 14:30:15
 
@@ -205,7 +216,7 @@ while running:
         id, text = reader.read_no_block()  # Nie blokuje działania pętli
         if id:
             last_rfid_time = time.time()  # Zapisz czas ostatniego odczytu
-            currnet_time = datetime.now().strftime("%d-%m-%Y %H:%M")
+            currnet_time = datetime.now().strftime("%Y-%m-%d %H:%M")
             payload = {"card_id":str(id), "timestamp": currnet_time,"id_par": PAR_ID}
             headers = {"Content-Type": "application/json"}
             
@@ -213,13 +224,29 @@ while running:
             if check_server():
                 try:
                     response = requests.post(SERVER_URL, json=payload, headers=headers)
-                    rfid_message = f"{response.json().get('message')}"
-                    Dgreen()
-                    beep(800,0.5)
-                    Dblack()
+                  #  print(response.status_code)
+                    if response.status_code==200:
+                        data = response.json()
+                        event_name = data.get("name")
+                        event_time = data.get("time")
+                        event_poinst = data.get("points")
+                        
+                        rfid_message = f"{event_name}\nGodzina: {event_time}\nPunkty: {event_poinst}"
+                        Dgreen()
+                        beep(800,0.5)
+                        Dblack()
+                    elif response.status_code == 501:
+                      #  print(response.status_code)
+                        data = response.json()
+                        event_name = data.get("name")
+                        event_message = data.get("message")
+                        rfid_message = f"{event_name}\n{event_message}"
+                        Dred()
+                        beep(300, 0.5)
+                        Dblack();
                 except Exception as e:
                     rfid_message = "Błąd wysyłania"
-                    Dreed()
+                    Dred()
                     beep(300,0.5)
                     Dblack()
             else:
@@ -239,9 +266,13 @@ while running:
 
     # Przełączanie między datą a RFID
     if rfid_message and (time.time() - last_rfid_time < 2):
+        lines = rfid_message.split("\n")
+        scaled_font = get_scaled_font(lines, SCREEN_WIDTH-40, SCREEN_HEIGHT //2)
+        y_offset = SCREEN_HEIGHT // 2 - (len(lines) * scaled_font.get_height()) // 2
+        for i, line in enumerate(lines):
         # Wyświetlanie ID karty RFID
-        rfid_text = font_large.render(rfid_message, True, WHITE)
-        screen.blit(rfid_text, (SCREEN_WIDTH//2 - rfid_text.get_width()//2, SCREEN_HEIGHT//2 - 50))
+            rfid_text = scaled_font.render(line, True, WHITE)
+            screen.blit(rfid_text, (SCREEN_WIDTH//2 - rfid_text.get_width()//2, y_offset + i * scaled_font.get_height()+20))
     else:
         rfid_message=None   # Reset po 2 sekundach
         # Renderowanie normalnych tekstów
@@ -268,7 +299,7 @@ while running:
     pygame.display.flip()
     
     # Odświeżanie co sekundę
-    time.sleep(1)
+    time.sleep(0.1)
 
 # Sprzątanie zasobów
 GPIO.cleanup()
