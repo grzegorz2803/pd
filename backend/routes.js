@@ -14,6 +14,7 @@ router.post("/data", async (req, res) => {
 
     try {
         const {card_id, timestamp, id_par} = req.body;
+        console.log(card_id,timestamp,id_par)
         const person = await getUserByCardIdAndIdPar(card_id, id_par);
         if(person !== null){
             const service = await getServicesByTimeStamp(timestamp,id_par);
@@ -30,14 +31,16 @@ router.post("/data", async (req, res) => {
                     };
                     res.status(200).json(result);
                 }else {
-                    res.status(501).json("Duplikat!!!");
+                    res.status(501).json({name: "Duplikat !!!",
+                    message: "Już odczytałeś swoją kartę"});
                 }
             }else {
                 const serviceAdded = await  addOtherReading(card_id,timestamp, id_par);
                 if(serviceAdded) {
                     res.status(200).json(serviceAdded);
                 }else {
-                    res.status(501).json("Duplikat!!!");
+                    res.status(501).json({name: "Duplikat !!!",
+                        message: "Już odczytałeś swoją kartę"});
                 }
             }
 
