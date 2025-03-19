@@ -1,5 +1,5 @@
 const express = require('express');
-const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading} = require('./db')
+const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection} = require('./db')
 const router = express.Router();
 
 router.get('/data', (req, res) => {
@@ -15,42 +15,53 @@ router.post("/data", async (req, res) => {
     try {
         const {card_id, timestamp, id_par} = req.body;
         console.log(card_id,timestamp,id_par)
-        const person = await getUserByCardIdAndIdPar(card_id, id_par);
-        if(person !== null){
-            const service = await getServicesByTimeStamp(timestamp,id_par);
-            if(service!==null) {
-                const {name, time_service, points} = service;
-                const {card_id} = person;
-                const serviceAdded = await addReading(card_id, timestamp, name, time_service, id_par);
-                if(serviceAdded){
-                    const result = {
-                        name: name,
-                        time: time_service,
-                        points: points,
-                        message: "Dodano"
-                    };
-                    res.status(200).json(result);
-                }else {
-                    res.status(501).json({name: "Duplikat !!!",
-                    message: "Już odczytałeś swoją kartę"});
+        if(await checkDatabaseConnection()) {
+            const person = await getUserByCardIdAndIdPar(card_id, id_par);
+            if (person !== null) {
+                const service = await getServicesByTimeStamp(timestamp, id_par);
+                if (service !== null) {
+                    const {name, time_service, points} = service;
+                    const {card_id} = person;
+                    const serviceAdded = await addReading(card_id, timestamp, name, time_service, id_par);
+                    if (serviceAdded) {
+                        const result = {
+                            name: name,
+                            time: time_service,
+                            points: points,
+                            message: "Dodano"
+                        };
+                        res.status(200).json(result);
+                    } else {
+                        res.status(501).json({
+                            name: "Duplikat !!!",
+                            message: "Już odczytałeś swoją kartę"
+                        });
+                    }
+                } else {
+                    const serviceAdded = await addOtherReading(card_id, timestamp, id_par);
+                    if (serviceAdded) {
+                        res.status(200).json(serviceAdded);
+                    } else {
+                        res.status(501).json({
+                            name: "Duplikat !!!",
+                            message: "Już odczytałeś swoją kartę"
+                        });
+                    }
                 }
-            }else {
-                const serviceAdded = await  addOtherReading(card_id,timestamp, id_par);
-                if(serviceAdded) {
-                    res.status(200).json(serviceAdded);
-                }else {
-                    res.status(501).json({name: "Duplikat !!!",
-                        message: "Już odczytałeś swoją kartę"});
-                }
+
+            } else {
+                res.status(502).json({
+                    name: "Brak użytkownika w bazie",
+                    message: "Skontaktuj się ze swoim opiekunem."
+                });
             }
-
-        }else{
-            res.status(400).json("Brak użytkownika w bazie");
+        }else {
+            res.status(503).json( {name: "Brak połączenia z bazą danych"});
         }
-
     } catch (error) {
-        console.error("Błąd zapytania do bazy: ", error);
+      //  console.error("Błąd zapytania do bazy: ", error);
         res.status(500).json({error: "Błąd serwera"});
+        console.log("Rzucono wyjątek");
     }
 
 });

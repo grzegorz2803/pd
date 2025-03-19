@@ -9,7 +9,15 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
-
+async function checkDatabaseConnection() {
+    try{
+        const connection = await pool.getConnection();
+        connection.release();
+        return true;
+    }catch (error){
+        return false;
+    }
+}
 async function getUserByCardIdAndIdPar(cardID, parID) {
     try {
         const query = "SELECT * FROM users WHERE card_id = ? AND id_parish = ?";
@@ -109,19 +117,12 @@ async function getServicesByTimeStamp(timeStamp, parID){
           //  console.log(rows);
             return rows[0] !==undefined ? rows[0]: null ;
     }catch (error) {
-        console.error("Błąd wyszukania nabożeństwa w bazie danych:", error);
+      //  console.error("Błąd wyszukania nabożeństwa w bazie danych:", error);
         throw error;
     }
 
 }
-function subtractMinutes(timeString, minutesToSubtract) {
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const date = new Date();
-    date.setHours(hours);
-    date.setMinutes(minutes - minutesToSubtract);
 
-    return date.toTimeString().slice(0, 8); // Format HH:MM:SS
-}
 async function addReading(cardId, timeStamp, nameService, timeService, idPar){
     const [date, time] = timeStamp.split(" ");
     const tableName = `${idPar}_readings`;
@@ -193,4 +194,12 @@ async function checkDuplicateReading(cardId, dateRead, timeService, tableName, f
         throw error;
     }
 }
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading};
+function subtractMinutes(timeString, minutesToSubtract) {
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(minutes - minutesToSubtract);
+
+    return date.toTimeString().slice(0, 8); // Format HH:MM:SS
+}
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection};
