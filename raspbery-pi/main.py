@@ -65,6 +65,34 @@ rfid_message = None # Wiadomość  z serwera
 SYNC_HOURS = ["05:00","14:12"]
 last_sync_date = None
 
+#kolory RGB
+def Dred():
+    red.ChangeDutyCycle(100)
+    green.ChangeDutyCycle(0)
+    blue.ChangeDutyCycle(0)
+
+def Dgreen():
+    red.ChangeDutyCycle(0)
+    green.ChangeDutyCycle(100)
+    blue.ChangeDutyCycle(0)    
+
+def Dblue():
+    red.ChangeDutyCycle(0)
+    green.ChangeDutyCycle(0)
+    blue.ChangeDutyCycle(100)
+
+def Dblack():
+    red.ChangeDutyCycle(0)
+    green.ChangeDutyCycle(0)
+    blue.ChangeDutyCycle(0)
+    
+#buzzer
+def beep(frequency, duration):
+    buzzer.ChangeFrequency(frequency)
+    buzzer.start(60)
+    time.sleep(duration)
+    buzzer.stop()
+    
 # funkcja do skalowania tekstu
 def get_scaled_font(lines, max_width, max_height, base_size=80):
     font_size = base_size
@@ -99,6 +127,11 @@ def save_offline(data):
     
     with open(OFFLINE_FILE, "w") as f:
         json.dump(offline_data, f, indent=1)
+    red.ChangeDutyCycle(100)
+    green.ChangeDutyCycle(65)
+    blue.ChangeDutyCycle(0)
+    beep(500,0.5)
+    Dblack()
 
 #funkcja do wysyłania zapissanych danych na server
 
@@ -141,33 +174,7 @@ def send_offline_data():
             
             last_sync_date = current_date
             
-#kolory RGB
-def Dred():
-    red.ChangeDutyCycle(100)
-    green.ChangeDutyCycle(0)
-    blue.ChangeDutyCycle(0)
 
-def Dgreen():
-    red.ChangeDutyCycle(0)
-    green.ChangeDutyCycle(100)
-    blue.ChangeDutyCycle(0)    
-
-def Dblue():
-    red.ChangeDutyCycle(0)
-    green.ChangeDutyCycle(0)
-    blue.ChangeDutyCycle(100)
-
-def Dblack():
-    red.ChangeDutyCycle(0)
-    green.ChangeDutyCycle(0)
-    blue.ChangeDutyCycle(0)
-    
-def beep(frequency, duration):
-    buzzer.ChangeFrequency(frequency)
-    buzzer.start(60)
-    time.sleep(duration)
-    buzzer.stop()
-    
 if check_server():
     Dred()
     time.sleep(1)
@@ -196,7 +203,7 @@ while running:
     
     # Pobranie aktualnej daty i godziny
     now = datetime.now()
-    date_string = now.strftime("%Y-%m-%d")      # Format: 2025-02-06
+    date_string = now.strftime("%d-%m-%Y")      # Format: 2025-02-06
     weekday_string = now.strftime("%A")         # Nazwa dnia tygodnia (angielska)
     time_string = now.strftime("%H:%M:%S")      # Format: 14:30:15
 
@@ -224,6 +231,7 @@ while running:
             if check_server():
                 try:
                     response = requests.post(SERVER_URL, json=payload, headers=headers)
+                    #print(reposnse.status_code)
                   #  print(response.status_code)
                     if response.status_code==200:
                         data = response.json()
@@ -244,6 +252,24 @@ while running:
                         Dred()
                         beep(300, 0.5)
                         Dblack();
+                    elif response.status_code == 502:
+                        data = response.json();
+                        event_name = data.get("name")
+                        event_message = data.get("message")
+                        rfid_message = f"{event_name}\n{event_message}"
+                        Dblue()
+                        beep(500, 0.5)
+                        Dblack()
+                    elif response.status_code == 503:
+                        data = response.json();
+                        event_name = data.get("name")
+                        save_offline(payload)
+                        rfid_message = f"{event_name}\nZapisano dane do pliku"
+                    elif response.status_code == 500:
+                        data = response.json();
+                        event_error = data.get("error")
+                        save_offline(payload)
+                        rfid_message = f"{event_error}\n Zapisano dane do pliku"
                 except Exception as e:
                     rfid_message = "Błąd wysyłania"
                     Dred()
@@ -251,12 +277,7 @@ while running:
                     Dblack()
             else:
                 save_offline(payload)
-                rfid_message = "Zapisano do pliku"
-                red.ChangeDutyCycle(100)
-                green.ChangeDutyCycle(65)
-                blue.ChangeDutyCycle(0)
-                beep(500,0.5)
-                Dblack()
+                rfid_message = f"Brak połączenia z serwerem\nDane zostały zapisane do pliku"
                 
     except Exception as e:
         print(f"Błąd RFID: {e}")
