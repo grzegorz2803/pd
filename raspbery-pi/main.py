@@ -62,7 +62,7 @@ reader = SimpleMFRC522()
 last_rfid_time = 0
 rfid_message = None # Wiadomość  z serwera
 
-SYNC_HOURS = ["05:00","14:12"]
+SYNC_HOURS = ["05:00","13:40","14:00", "21:00"]
 last_sync_date = None
 
 #kolory RGB
@@ -157,7 +157,7 @@ def send_offline_data():
             for entry in offline_data:
                 try:
                     response = requests.post(SERVER_URL, json=entry, headers={"Content-type": "application/json"})
-                    if response.status_code == 200:
+                    if response.status_code in [200, 501]:
                         print(f"Wysłano wpis: {entry}")
                     else:
                         new_offline_data.append(entry)
