@@ -194,6 +194,52 @@ async function checkDuplicateReading(cardId, dateRead, timeService, tableName, f
         throw error;
     }
 }
+async function checkIfTableExists(idPar){
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() +1).padStart(2,'0');
+
+  const tableYear = `${idPar}_${year}`;
+  const tableMonthYear = `${idPar}_${month}_${year}`;
+
+  const tablesToCheck = [tableYear, tableMonthYear];
+
+  const createTableSQL = (tableName) => `
+  CREATE TABLE IF NOT EXISTS \`${tableName}\` (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    card_id VARCHAR(50),
+    points INT DEFAULT 0,
+    points_meating INT DEFAULT 0,
+    sum INT GENERATED ALWAYS AS (points + points_meating) STORED,
+    FOREIGN KEY (card_id) REFERENCES users(card_id)
+  )
+  `;
+  const conn = await pool.getConnection();
+
+  try {
+      for(const tableName of tablesToCheck){
+          const [rows] = await conn.execute(
+              `SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name =?`,
+              [tableName]
+          );
+          const exists = rows[0].count>0;
+
+          if(!exists){
+              console.log(`Tabela ${tableName} nie istnieje. Tworzę ...`);
+              await conn.execute(createTableSQL(tableName));
+              console.log(`Utworzono tabele ${tableName}`);
+          }else {
+              console.log(`Tabela ${tableName} już istnieje`);
+          }
+      }
+
+      }catch(error){
+      console.error("Błąd przy sprawdzaniu  lub tworzeniu tabel: ",error);
+      throw error;
+  }finally {
+      conn.release();
+  }
+}
 function subtractMinutes(timeString, minutesToSubtract) {
     const [hours, minutes] = timeString.split(":").map(Number);
     const date = new Date();
@@ -202,4 +248,4 @@ function subtractMinutes(timeString, minutesToSubtract) {
 
     return date.toTimeString().slice(0, 8); // Format HH:MM:SS
 }
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection};
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists};
