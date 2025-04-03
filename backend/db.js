@@ -206,8 +206,7 @@ async function checkIfTableExists(idPar){
 
   const createTableSQL = (tableName) => `
   CREATE TABLE IF NOT EXISTS \`${tableName}\` (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    card_id VARCHAR(50),
+    card_id VARCHAR(20) PRIMARY KEY NOT NULL,
     points INT DEFAULT 0,
     points_meating INT DEFAULT 0,
     sum INT GENERATED ALWAYS AS (points + points_meating) STORED,
@@ -240,6 +239,40 @@ async function checkIfTableExists(idPar){
       conn.release();
   }
 }
+async function updateOrInsertPoints(cardID, points, parID){
+const now = new Date();
+const year = now.getFullYear();
+const month = String(now.getMonth() +1).padStart(2, '0');
+const tables = [
+  `${parID}_${year}`,
+  `${parID}_${month}_${year}`
+];
+try{
+    for (const tableName of tables){
+        const [rows] = await pool.execute(
+            `SELECT * FROM \`${tableName}\` WHERE card_id = ?`,
+            [cardID]
+        );
+        console.log(rows[0]);
+        if(rows[0] !== undefined){
+            await pool.execute(
+                `UPDATE \`${tableName}\` SET points = points + ? WHERE card_id = ?`,
+                [points,cardID]
+            );
+            console.log(`Zaktualizowano punkty w tabeli ${tableName}`);
+        }else {
+            await pool.execute(
+                `INSERT INTO \`${tableName}\` (card_id, points, points_meating) VALUES (?,?,0)`,
+                [cardID, points]
+            );
+            console.log(`Dodano wpis do tabeli ${tableName}`);
+        }
+    }
+}catch (error){
+    console.error('Błąd aktualizacji punktów', error);
+    throw error;
+}
+}
 function subtractMinutes(timeString, minutesToSubtract) {
     const [hours, minutes] = timeString.split(":").map(Number);
     const date = new Date();
@@ -248,4 +281,4 @@ function subtractMinutes(timeString, minutesToSubtract) {
 
     return date.toTimeString().slice(0, 8); // Format HH:MM:SS
 }
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists};
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists, updateOrInsertPoints};

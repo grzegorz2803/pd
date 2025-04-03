@@ -1,5 +1,5 @@
 const express = require('express');
-const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists} = require('./db')
+const {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists, updateOrInsertPoints} = require('./db')
 const router = express.Router();
 
 router.get('/data', (req, res) => {
@@ -26,6 +26,7 @@ router.post("/data", async (req, res) => {
                     if (serviceAdded) {
                         try{
                             await checkIfTableExists(id_par);
+                            await updateOrInsertPoints(card_id,points,id_par);
                             const result = {
                                 name: name,
                                 time: time_service,
@@ -45,7 +46,13 @@ router.post("/data", async (req, res) => {
                 } else {
                     const serviceAdded = await addOtherReading(card_id, timestamp, id_par);
                     if (serviceAdded) {
+                        try{
+                            await checkIfTableExists(id_par);
+                            await updateOrInsertPoints(card_id,5,id_par);
                         res.status(200).json(serviceAdded);
+                        }catch (error){
+                            res.status(500).json({error: "Błąd serwera"});
+                        }
                     } else {
                         res.status(501).json({
                             name: "Duplikat !!!",
