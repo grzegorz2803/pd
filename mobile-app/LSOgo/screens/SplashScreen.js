@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 import React, {useEffect, useRef} from "react";  
 import { View, Text, StyleSheet,  ImageBackground } from "react-native";
@@ -27,7 +28,12 @@ export default function SplashScreen({navigation}) {
         try {
             const response = await fetch(SERVER_URL);
             if(response.ok){
-                navigation.replace('Calendar');
+                const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
+                if(isLoggedIn === 'true'){
+                    navigation.replace('Calendar', {loggedIn: true});
+                }else{
+                    navigation.replace('Calendar', {loggedIn: false});
+                }
             }else{
                 console.log("Server odpowiedział  z błędem", response.status);
             }
