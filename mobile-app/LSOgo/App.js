@@ -1,24 +1,18 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SplashScreen from './screens/SplashScreen';
+import CalendarScreen from './screens/CalendarScreen';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LSOgo</Text>
-    </View>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName='Splash' screenOptions={{headerShown: false}} >
+          <Stack.Screen name='Splash' component={SplashScreen} />
+          <Stack.Screen name='Calendar' component={CalendarScreen} />
+    </Stack.Navigator>
+      </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f4ecd8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#6e4b1f'
-  },
-});
