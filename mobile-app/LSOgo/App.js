@@ -12,6 +12,7 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   const [fontsLoaded] = useFonts({
     'Cinzel-Regular': require('./assets/fonts/Cinzel-Regular.ttf'),
+    'Cinzel-Bold': require('./assets/fonts/Cinzel-Bold.ttf'),
   });
   if (!fontsLoaded) {
     return <AppLoading />;
