@@ -8,3 +8,26 @@ export async function isServerAvailable() {
     return false;
   }
 }
+export const fetchTodayLiturgicalData = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/calendar/today`);
+    if (!response.ok) throw new Error("Błąd serwera");
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd pobierania danych z serwera na dziś:", error.message);
+    return null;
+  }
+};
+export const fetchWeekLiturgicalData = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/calendar/week`);
+    if (!response.ok) throw new Error("Błąd serwera");
+    return await response.json();
+  } catch (error) {
+    console.error(
+      "Błąd pobierania danych z serwera dla tygodnia",
+      error.message
+    );
+    return [];
+  }
+};

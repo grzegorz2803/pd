@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Dimensions, Image, Platform } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Dimensions, Image, Platform } from "react-native";
 import {
   View,
   ScrollView,
@@ -15,15 +15,28 @@ import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavGuest from "../components/BottomNavGuest";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { fetchTodayLiturgicalData } from "../utils/api";
+import { RectButton } from "react-native-gesture-handler";
 const { width, height } = Dimensions.get("window");
 export default function CalendarScreen({ route, navigation }) {
   const { loggedIn } = useContext(AuthContext);
-
-  const today = {
-    saint: "Święto Świętego Marka ewangelisty",
-    color: "Czerwony",
-  };
-
+  const [todayData, setTodayData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const loadToday = async () => {
+      const data = await fetchTodayLiturgicalData();
+      setTodayData(data);
+      setLoading(false);
+    };
+    loadToday();
+  }, []);
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6e4b1f" />
+      </View>
+    );
+  }
   const weekDays = Array.from({ length: 6 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i + 1);
@@ -63,10 +76,23 @@ export default function CalendarScreen({ route, navigation }) {
               style={styles.crossDay}
             />
             <View style={styles.saintCard}>
-              <Text style={styles.dayLabel}>Dziś</Text>
-              <Text style={styles.saint}>{today.saint}</Text>
-              <Text style={styles.colorLabel}>Kolor liturgiczny</Text>
-              <Text style={styles.color}>{today.color}</Text>
+              <Text style={styles.dayLabel}>{todayData.dayName}</Text>
+              <Text style={styles.todayDate}>
+                {todayData.date}
+                {todayData.celebrations.map((item, index) => (
+                  <View key={index} style={styles.celebrationBlock}>
+                    <Text style={styles.celebrationName}>{item.name}</Text>
+                    {item.color && (
+                      <Text style={[styles.litugicalColor]}>
+                        {capitalize(item.color)}
+                      </Text>
+                    )}
+                    {item.sigla && (
+                      <Text style={styles.sigla}>{item.sigla}</Text>
+                    )}
+                  </View>
+                ))}
+              </Text>
             </View>
           </View>
           {weekDays.map((item, index) => (
@@ -87,6 +113,8 @@ export default function CalendarScreen({ route, navigation }) {
     </ImageBackground>
   );
 }
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -153,6 +181,34 @@ const styles = StyleSheet.create({
     fontFamily: "Cinzel-Regular",
     fontSize: RFValue(24),
     color: "#1a1204",
+  },
+  todayDate: {
+    fontFamily: "Cinzel-Bold",
+    fontSize: RFValue(14),
+  },
+  celebrationBlock: {
+    marginBottom: RFValue(10),
+  },
+  celebrationName: {
+    fontSize: RFValue(16),
+    marginTop: RFValue(10),
+    color: "$1a1204",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    maxWidth: width * 0.65,
+    fontWeight: "bold",
+  },
+  litugicalColor: {
+    fontSize: RFValue(14),
+    marginVertical: RFValue(5),
+  },
+  sigla: {
+    fontSize: RFValue(13),
+    marginVertical: RFValue(5),
+    color: "$1a1204",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    maxWidth: width * 0.65,
   },
   saint: {
     fontSize: RFValue(16),
