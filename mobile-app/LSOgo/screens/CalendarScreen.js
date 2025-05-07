@@ -13,10 +13,11 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavGuest from "../components/BottomNavGuest";
-
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 const { width, height } = Dimensions.get("window");
-export default function CalendarScreen({ route }) {
-  const loggedIn = route?.params?.loggedIn;
+export default function CalendarScreen({ route, navigation }) {
+  const { loggedIn } = useContext(AuthContext);
 
   const today = {
     saint: "Święto Świętego Marka ewangelisty",
@@ -82,7 +83,7 @@ export default function CalendarScreen({ route }) {
           ))}
         </ScrollView>
       </SafeAreaView>
-      {!loggedIn && <BottomNavGuest />}
+      {!loggedIn && <BottomNavGuest navigation={navigation} />}
     </ImageBackground>
   );
 }

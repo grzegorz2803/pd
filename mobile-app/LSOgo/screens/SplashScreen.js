@@ -4,8 +4,6 @@ import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, ImageBackground } from "react-native";
 import { isServerAvailable } from "../utils/api";
 
-const SERVER_URL = "http://192.168.1.193:3000/api/data";
-
 export default function SplashScreen({ navigation }) {
   const intervalRef = useRef(null);
 
@@ -28,8 +26,7 @@ export default function SplashScreen({ navigation }) {
   const checkServerConnection = async () => {
     const available = await isServerAvailable();
     if (available) {
-      const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
-      navigation.replace("Calendar", { loggedIn: isLoggedIn === "true" });
+      navigation.replace("Calendar");
     }
   };
 
