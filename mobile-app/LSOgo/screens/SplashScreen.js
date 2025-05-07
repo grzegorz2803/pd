@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, ImageBackground } from "react-native";
+import { isServerAvailable } from "../utils/api";
 
 const SERVER_URL = "http://192.168.1.193:3000/api/data";
 
@@ -25,20 +26,10 @@ export default function SplashScreen({ navigation }) {
     }, 3000);
   };
   const checkServerConnection = async () => {
-    try {
-      const response = await fetch(SERVER_URL);
-      if (response.ok) {
-        const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
-        if (isLoggedIn === "true") {
-          navigation.replace("Calendar", { loggedIn: true });
-        } else {
-          navigation.replace("Calendar", { loggedIn: false });
-        }
-      } else {
-        console.log("Server odpowiedział  z błędem", response.status);
-      }
-    } catch (error) {
-      console.log("Brak połączenia z serwerem", error.message);
+    const available = await isServerAvailable();
+    if (available) {
+      const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
+      navigation.replace("Calendar", { loggedIn: isLoggedIn === "true" });
     }
   };
 
