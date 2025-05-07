@@ -19,6 +19,7 @@ import { fetchTodayLiturgicalData } from "../utils/api";
 import { RectButton } from "react-native-gesture-handler";
 const { width, height } = Dimensions.get("window");
 export default function CalendarScreen({ route, navigation }) {
+  const [expandedDayIndex, setExpandendDayIndex] = useState(-1);
   const { loggedIn } = useContext(AuthContext);
   const [todayData, setTodayData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,16 +71,43 @@ export default function CalendarScreen({ route, navigation }) {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContainer}
         >
-          <View style={styles.cardToday}>
+          <TouchableOpacity
+            style={[
+              styles.cardToday,
+              expandedDayIndex !== -1 && styles.cardDay,
+            ]}
+            onPress={() =>
+              setExpandendDayIndex(expandedDayIndex === -1 ? null : -1)
+            }
+          >
             <Image
               source={require("../assets/cross.png")}
-              style={styles.crossDay}
+              style={[styles.crossDay, expandedDayIndex !== -1 && styles.cross]}
             />
-            <View style={styles.saintCard}>
-              <Text style={styles.dayLabel}>{todayData.dayName}</Text>
-              <Text style={styles.todayDate}>
+            <View
+              style={[
+                styles.saintCard,
+                expandedDayIndex !== -1 && styles.saintCardExpand,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.dayLabel,
+                  expandedDayIndex !== -1 && styles.dayName,
+                ]}
+              >
+                {todayData.dayName}
+              </Text>
+              <Text
+                style={[
+                  styles.todayDate,
+                  expandedDayIndex !== -1 && styles.dayDate,
+                ]}
+              >
                 {todayData.date}
-                {todayData.celebrations.map((item, index) => (
+              </Text>
+              {expandedDayIndex === -1 &&
+                todayData.celebrations.map((item, index) => (
                   <View key={index} style={styles.celebrationBlock}>
                     <Text style={styles.celebrationName}>{item.name}</Text>
                     {item.color && (
@@ -92,21 +120,67 @@ export default function CalendarScreen({ route, navigation }) {
                     )}
                   </View>
                 ))}
-              </Text>
             </View>
-          </View>
-          {weekDays.map((item, index) => (
-            <View key={index} style={styles.cardDay}>
-              <Image
-                source={require("../assets/cross.png")}
-                style={styles.cross}
-              />
-              <View>
-                <Text style={styles.dayName}>{item.day}</Text>
-                <Text style={styles.dayDate}>{item.date}</Text>
-              </View>
-            </View>
-          ))}
+          </TouchableOpacity>
+
+          {weekDays.map((item, index) => {
+            const isExpanded = expandedDayIndex === index;
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.cardDay}
+                onPress={() =>
+                  setExpandendDayIndex(
+                    expandedDayIndex === index ? null : index
+                  )
+                }
+              >
+                <Image
+                  source={require("../assets/cross.png")}
+                  style={[
+                    styles.crossDay,
+                    expandedDayIndex !== index && styles.cross,
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.saintCard,
+                    expandedDayIndex !== index && styles.saintCardExpand,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.dayLabel,
+                      expandedDayIndex !== index && styles.dayName,
+                    ]}
+                  >
+                    {item.day}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.todayDate,
+                      expandedDayIndex !== index && styles.dayDate,
+                    ]}
+                  >
+                    {item.date}
+                  </Text>
+
+                  {isExpanded && (
+                    <View style={styles.celebrationBlock}>
+                      <Text style={styles.celebrationName}>
+                        Św. Mikołaj z Miry
+                      </Text>
+                      <Text style={styles.litugicalColor}>Czerwony</Text>
+                      <Text style={styles.sigla}>
+                        Dz 6, 1-7; Ps 33; J 6, 16-21
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </SafeAreaView>
       {!loggedIn && <BottomNavGuest navigation={navigation} />}
@@ -167,6 +241,9 @@ const styles = StyleSheet.create({
   },
   saintCard: {
     paddingLeft: RFValue(10),
+  },
+  saintCardExpand: {
+    paddingLeft: RFValue(0),
   },
   crossDay: {
     width: RFValue(50),
