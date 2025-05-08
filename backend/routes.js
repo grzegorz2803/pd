@@ -24,8 +24,8 @@ router.get('/calendar/today', async (req, res) => {
     res.status(200).json(result);
 });
 router.get('/calendar/week', async (req, res) => {
-    await getLiturgicalDataWeek();
-    res.status(200);
+  const result = await getLiturgicalDataWeek();
+  res.status(200).json(result);
 });
 // Endpoint do odbioru danych
 router.post("/data", async (req, res) => {

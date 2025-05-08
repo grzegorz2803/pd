@@ -1,5 +1,7 @@
 const mysql = require('mysql2/promise');
 const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'g_admin',
@@ -9,6 +11,8 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 async function checkDatabaseConnection() {
     try {
@@ -349,46 +353,49 @@ async function getLiturgicalDataToday() {
 async function getLiturgicalDataWeek() {
     const fromDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
     const toDate = dayjs().add(6, 'day').format('YYYY-MM-DD');
-    console.log(fromDate);
-    console.log(toDate);
-    // const query = `SELECT date, day_name, name, color, sigla, notes
-    //                FROM calendar_tools
-    //                WHERE date = ?
-    //                ORDER BY CASE priority_level WHEN 'solemnity' THEN 1
-    //                    WHEN 'feast' THEN 2
-    //                    WHEN 'memorial' THEN 3
-    //                    WHEN 'ferial' THEN 4
-    //                    WHEN 'optional_memorial' THEN 5
-    //                    ELSE 6
-    // END;`;
-    // try {
-    //     const [result] = await pool.execute(query, [today]);
-    //     if (result === undefined) {
-    //         return {message: "Brak danych dla tego dnia"};
-    //     }
-    //     const formattedJson = {
-    //         date: dayjs(result[0].date).format('DD-MM-YYYY'),
-    //         dayName: result[0].day_name,
-    //         celerations: result.map(row => {
-    //             const celebration = {
-    //                 name: row.name,
-    //                 color: row.color
-    //             };
-    //             if(row.sigla){
-    //                 celebration.sigla = row.sigla;
-    //             }
-    //             if(row.notes){
-    //                 celebration.notes = row.notes;
-    //             }
-    //             return celebration;
-    //         })
-    //     };
-    //     console.log(formattedJson);
-    //     return formattedJson;
-    // } catch (error) {
-    //     console.error("Błąd", error);
-    //     throw error;
-    // }
+
+    const query = `SELECT date, day_name, name, color, sigla, notes
+                   FROM calendar_tools
+                   WHERE date >=? AND date <=?
+                   ORDER BY date,
+                       CASE priority_level WHEN 'solemnity' THEN 1
+                       WHEN 'feast' THEN 2
+                       WHEN 'memorial' THEN 3
+                       WHEN 'ferial' THEN 4
+                       WHEN 'optional_memorial' THEN 5
+                       ELSE 6
+    END;`;
+    try {
+        const [rows] = await pool.execute(query, [fromDate, toDate]);
+        if (rows === undefined) {
+            return {message: "Brak danych dla tego dnia"};
+        }
+        console.log(dayjs.utc(rows[0].date).tz('Europe/Warsaw').format('DD-MM-YYYY'));
+        const groupedByDate = {};
+
+        rows.forEach(row => {
+            const formattedDate = dayjs.utc(row.date).tz('Europe/Warsaw').format('DD-MM-YYYY');
+            if(!groupedByDate[formattedDate]) {
+                groupedByDate[formattedDate] = {
+                    date: formattedDate,
+                    dayName: row.day_name,
+                    celebrations: []
+                };
+            }
+            const celebration = {
+                name: row.name,
+                color: row.color
+            };
+            if(row.sigla) celebration.sigla = row.sigla;
+            if(row.notes) celebration.note = row.notes;
+
+            groupedByDate[formattedDate].celebrations.push(celebration);
+        });
+        return  Object.values(groupedByDate);
+    } catch (error) {
+        console.error("Błąd", error);
+        throw error;
+    }
 }
 
 module.exports = {
