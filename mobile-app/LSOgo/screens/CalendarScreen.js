@@ -16,18 +16,28 @@ import BottomNavGuest from "../components/BottomNavGuest";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { fetchTodayLiturgicalData } from "../utils/api";
+import { fetchWeekLiturgicalData } from "../utils/api";
 import { RectButton } from "react-native-gesture-handler";
+import { withDecay } from "react-native-reanimated";
 const { width, height } = Dimensions.get("window");
 export default function CalendarScreen({ route, navigation }) {
   const [expandedDayIndex, setExpandendDayIndex] = useState(-1);
   const { loggedIn } = useContext(AuthContext);
   const [todayData, setTodayData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [weekData, setWeekData] = useState([]);
   useEffect(() => {
     const loadToday = async () => {
-      const data = await fetchTodayLiturgicalData();
-      setTodayData(data);
-      setLoading(false);
+      try {
+        const today = await fetchTodayLiturgicalData();
+        const week = await fetchWeekLiturgicalData();
+        setTodayData(today);
+        setWeekData(week);
+      } catch (error) {
+        console.error("Błąd podczas pobierania danych", error);
+      } finally {
+        setLoading(false);
+      }
     };
     loadToday();
   }, []);
@@ -123,7 +133,7 @@ export default function CalendarScreen({ route, navigation }) {
             </View>
           </TouchableOpacity>
 
-          {weekDays.map((item, index) => {
+          {weekData.map((item, index) => {
             const isExpanded = expandedDayIndex === index;
 
             return (
@@ -155,7 +165,7 @@ export default function CalendarScreen({ route, navigation }) {
                       expandedDayIndex !== index && styles.dayName,
                     ]}
                   >
-                    {item.day}
+                    {item.dayName}
                   </Text>
                   <Text
                     style={[
@@ -166,17 +176,16 @@ export default function CalendarScreen({ route, navigation }) {
                     {item.date}
                   </Text>
 
-                  {isExpanded && (
-                    <View style={styles.celebrationBlock}>
-                      <Text style={styles.celebrationName}>
-                        Św. Mikołaj z Miry
-                      </Text>
-                      <Text style={styles.litugicalColor}>Czerwony</Text>
-                      <Text style={styles.sigla}>
-                        Dz 6, 1-7; Ps 33; J 6, 16-21
-                      </Text>
-                    </View>
-                  )}
+                  {isExpanded &&
+                    weekData[index].celebrations.map((item, index) => (
+                      <View key={index} style={styles.celebrationBlock}>
+                        <Text style={styles.celebrationName}>{item.name}</Text>
+                        <Text style={styles.litugicalColor}>{item.color}</Text>
+                        {item.sigla && (
+                          <Text style={styles.sigla}>{item.sigla}</Text>
+                        )}
+                      </View>
+                    ))}
                 </View>
               </TouchableOpacity>
             );
