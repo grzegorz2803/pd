@@ -307,6 +307,12 @@ function subtractMinutes(timeString, minutesToSubtract) {
 
     return date.toTimeString().slice(0, 8); // Format HH:MM:SS
 }
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists, updateOrInsertPoints};
+=======
+>>>>>>> Stashed changes
 
 async function getLiturgicalDataToday() {
     const today = dayjs().format('YYYY-MM-DD');
@@ -342,7 +348,10 @@ async function getLiturgicalDataToday() {
                 return celebration;
             })
         };
+<<<<<<< Updated upstream
         console.log(formattedJson);
+=======
+>>>>>>> Stashed changes
         return formattedJson;
     } catch (error) {
         console.error("Błąd", error);
@@ -408,4 +417,9 @@ module.exports = {
     updateOrInsertPoints,
     getLiturgicalDataToday,
     getLiturgicalDataWeek
+<<<<<<< Updated upstream
 };
+=======
+};
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
