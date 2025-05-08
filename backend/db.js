@@ -328,7 +328,7 @@ async function getLiturgicalDataToday() {
         const formattedJson = {
             date: dayjs(result[0].date).format('DD-MM-YYYY'),
             dayName: result[0].day_name,
-            celerations: result.map(row => {
+            celebrations: result.map(row => {
                 const celebration = {
                     name: row.name,
                     color: row.color
