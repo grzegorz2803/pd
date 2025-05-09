@@ -8,7 +8,8 @@ const {
     checkIfTableExists,
     updateOrInsertPoints,
     getLiturgicalDataToday,
-    getLiturgicalDataWeek
+    getLiturgicalDataWeek,
+    getAboutApp
 } = require('./db')
 const router = express.Router();
 
@@ -19,29 +20,22 @@ router.get('/data', (req, res) => {
         time: new Date().toISOString()
     });
 });
-<<<<<<< Updated upstream
+
 router.get('/calendar/today', async (req, res) => {
     const result = await getLiturgicalDataToday();
-=======
-<<<<<<< Updated upstream
-=======
-router.get('/calendar/today', async (req, res) => {
-    const result = await getLiturgicalDataToday();
-    console.log('day');
->>>>>>> Stashed changes
+
     res.status(200).json(result);
 });
 router.get('/calendar/week', async (req, res) => {
   const result = await getLiturgicalDataWeek();
-<<<<<<< Updated upstream
   res.status(200).json(result);
 });
-=======
-  console.log('week');
-  res.status(200).json(result);
+
+router.get('/about/:version', async (req, res) => {
+    const versionApp = req.params.version;
+    const result = await getAboutApp(versionApp);
+    res.status(200).json(result);
 });
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 // Endpoint do odbioru danych
 router.post("/data", async (req, res) => {
 

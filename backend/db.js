@@ -307,12 +307,7 @@ function subtractMinutes(timeString, minutesToSubtract) {
 
     return date.toTimeString().slice(0, 8); // Format HH:MM:SS
 }
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-module.exports = {getUserByCardIdAndIdPar, getServicesByTimeStamp, addReading, addOtherReading, checkDatabaseConnection, checkIfTableExists, updateOrInsertPoints};
-=======
->>>>>>> Stashed changes
+
 
 async function getLiturgicalDataToday() {
     const today = dayjs().format('YYYY-MM-DD');
@@ -348,10 +343,6 @@ async function getLiturgicalDataToday() {
                 return celebration;
             })
         };
-<<<<<<< Updated upstream
-        console.log(formattedJson);
-=======
->>>>>>> Stashed changes
         return formattedJson;
     } catch (error) {
         console.error("Błąd", error);
@@ -406,6 +397,16 @@ async function getLiturgicalDataWeek() {
         throw error;
     }
 }
+async function getAboutApp(versionApp){
+const query = `SELECT * FROM about_app WHERE version = ?`;
+try{
+    const [result] = await pool.execute(query, [versionApp]);
+    return result;
+}catch (error){
+    console.error("Błąd", error);
+    throw  error;
+}
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -416,10 +417,6 @@ module.exports = {
     checkIfTableExists,
     updateOrInsertPoints,
     getLiturgicalDataToday,
-    getLiturgicalDataWeek
-<<<<<<< Updated upstream
+    getLiturgicalDataWeek,
+    getAboutApp
 };
-=======
-};
->>>>>>> Stashed changes
->>>>>>> Stashed changes
