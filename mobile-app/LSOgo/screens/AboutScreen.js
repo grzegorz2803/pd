@@ -1,4 +1,4 @@
-import React, { useState, version } from "react";
+import React, { useEffect, useState, version } from "react";
 import {
   View,
   Text,
@@ -21,13 +21,16 @@ const { width, height } = Dimensions.get("window");
 export default function AboutScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
   const [appAbout, setAppAbout] = useState(null);
-  useState(() => {
-    const loaging = async () => {
+  useEffect(() => {
+    const loadData = async () => {
       const data = await fetchAboutAppData(Constants.expoConfig.version);
-      setAppAbout(data);
+      console.log(data);
+      if (data) {
+        setAppAbout(data);
+      }
     };
-    loaging();
-  });
+    loadData();
+  }, []);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -48,29 +51,35 @@ export default function AboutScreen({ navigation }) {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContainer}
         >
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>O aplikacji</Text>
-            <Text style={styles.version}>Wersja: </Text>
-            <Text style={styles.sectionText}>
-              {appAbout[0].description_app}
-            </Text>
-          </View>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Autor</Text>
+          {appAbout && appAbout[0] && (
+            <>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>O aplikacji</Text>
+                <Text style={styles.version}>Wersja: </Text>
+                <Text style={styles.sectionText}>
+                  {appAbout[0].description_app}
+                </Text>
+              </View>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Autor</Text>
 
-            <Text style={styles.sectionText}>
-              {appAbout[0].description_author}
-            </Text>
-          </View>
-          <View style={styles.linkBox}>
-            <Text style={styles.linkBoxText}>{appAbout[0].website_note}</Text>
-            <TouchableOpacity
-              style={styles.linkButton}
-              onPress={() => Linking.openURL("http://www.google.pl")}
-            >
-              <Text style={styles.linkButtonTexx}>Zobacz więcej</Text>
-            </TouchableOpacity>
-          </View>
+                <Text style={styles.sectionText}>
+                  {appAbout[0].description_author}
+                </Text>
+              </View>
+              <View style={styles.linkBox}>
+                <Text style={styles.linkBoxText}>
+                  {appAbout[0].website_note}
+                </Text>
+                <TouchableOpacity
+                  style={styles.linkButton}
+                  onPress={() => Linking.openURL(appAbout[0].website_url)}
+                >
+                  <Text style={styles.linkButtonTexx}>Zobacz więcej</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
       {!loggedIn && <BottomNavGuest navigation={navigation} />}
