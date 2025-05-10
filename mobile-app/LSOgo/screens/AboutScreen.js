@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, version } from "react";
 import {
   View,
   Text,
@@ -15,10 +15,19 @@ import BottomNavGuest from "../components/BottomNavGuest";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-
+import { fetchAboutAppData } from "../utils/api";
+import Constants from "expo-constants";
 const { width, height } = Dimensions.get("window");
 export default function AboutScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
+  const [appAbout, setAppAbout] = useState(null);
+  useState(() => {
+    const loaging = async () => {
+      const data = await fetchAboutAppData(Constants.expoConfig.version);
+      setAppAbout(data);
+    };
+    loaging();
+  });
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -41,33 +50,20 @@ export default function AboutScreen({ navigation }) {
         >
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>O aplikacji</Text>
+            <Text style={styles.version}>Wersja: </Text>
             <Text style={styles.sectionText}>
-              Lorem Ipsum is simply dummy text of the printing and typesetting
-              industry. Lorem Ipsum has been the industry's standard dummy text
-              ever since the 1500s, when an unknown printer took a galley of
-              type and scrambled it to make a type specimen book. It has
-              survived not only five centuries, but also the leap into
-              electronic typesetting, remaining essentially unchanged. It was
-              popularised in the 1960s with the release of Letraset sheets
-              containing Lorem Ipsum passages, and more recently with desktop
-              publishing software like Aldus PageMaker including versions of
-              Lorem Ipsum.
+              {appAbout[0].description_app}
             </Text>
           </View>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Autor</Text>
+
             <Text style={styles.sectionText}>
-              Lorem Ipsum is simply dummy text of the printing and typesetting
-              industry. Lorem Ipsum has been the industry's standard dummy text
-              ever since the 1500s, when an unknown printer took a galley of
-              type and scrambled it to make a type specimen book.
+              {appAbout[0].description_author}
             </Text>
           </View>
           <View style={styles.linkBox}>
-            <Text style={styles.linkBoxText}>
-              Zapraszamy na stronę oficjalną, gdzie można znaleźć więcej
-              informacji o LSOgo oraz związane z nim oferty.
-            </Text>
+            <Text style={styles.linkBoxText}>{appAbout[0].website_note}</Text>
             <TouchableOpacity
               style={styles.linkButton}
               onPress={() => Linking.openURL("http://www.google.pl")}
@@ -153,5 +149,10 @@ const styles = StyleSheet.create({
     fontSize: RFValue(14),
     color: "#1a1204",
     fontWeight: "bold",
+  },
+  version: {
+    fontSize: RFValue(14),
+    fontWeight: "bold",
+    marginVertical: RFValue(5),
   },
 });

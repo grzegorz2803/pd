@@ -31,3 +31,12 @@ export const fetchWeekLiturgicalData = async () => {
     return [];
   }
 };
+export const fetchAboutAppData = async (version) => {
+  try {
+    const response = await fetch(`${BASE_URL}/about/${version}`);
+    if (!response.ok) throw new Error("Błąd serwera");
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd pobierania danych o aplikacji ", error.message);
+  }
+};
