@@ -55,7 +55,9 @@ export default function AboutScreen({ navigation }) {
             <>
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>O aplikacji</Text>
-                <Text style={styles.version}>Wersja: </Text>
+                <Text style={styles.version}>
+                  Wersja: {appAbout[0].version}
+                </Text>
                 <Text style={styles.sectionText}>
                   {appAbout[0].description_app}
                 </Text>
