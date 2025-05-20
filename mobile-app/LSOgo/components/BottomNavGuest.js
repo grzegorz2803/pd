@@ -19,7 +19,10 @@ export default function BottomNavGuest({ navigation }) {
         <Image source={require("../assets/about.png")} style={styles.navIcon} />
         <Text style={styles.navText}>O nas</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem}>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Login")}
+      >
         <Image source={require("../assets/login.png")} style={styles.navIcon} />
         <Text style={styles.navText}>Log in</Text>
       </TouchableOpacity>
