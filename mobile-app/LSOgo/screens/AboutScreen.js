@@ -24,7 +24,6 @@ export default function AboutScreen({ navigation }) {
   useEffect(() => {
     const loadData = async () => {
       const data = await fetchAboutAppData(Constants.expoConfig.version);
-      console.log(data);
       if (data) {
         setAppAbout(data);
       }
