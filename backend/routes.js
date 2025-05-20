@@ -104,4 +104,10 @@ router.post("/data", async (req, res) => {
     }
 
 });
+router.post("/login", async (req,res  ) => {
+  const {login, password} = req.body;
+  console.log(login);
+  console.log(password);
+  res.status(200).json("ok");
+})
 module.exports = router;
