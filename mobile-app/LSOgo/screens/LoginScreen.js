@@ -49,6 +49,7 @@ export default function LoginScreen({ navigation }) {
               value={login}
               onChangeText={setLogin}
               placeholderTextColor="#444"
+              autoCapitalize="none"
             />
           </View>
           <View style={styles.inputContainer}>
@@ -63,6 +64,7 @@ export default function LoginScreen({ navigation }) {
               onChangeText={setPassword}
               secureTextEntry
               placeholderTextColor="#444"
+              autoCapitalize="none"
             />
           </View>
           <View style={styles.checkboxContainer}>
@@ -79,7 +81,7 @@ export default function LoginScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => handleLogin(login, password, rememberMe)}
+            onPress={() => handleLogin(login, password, rememberMe, navigation)}
           >
             <Text style={styles.loginText}>Zaloguj się</Text>
           </TouchableOpacity>

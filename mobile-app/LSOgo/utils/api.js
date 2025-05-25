@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import jwtDecode from "jwt-decode";
 import { Alert } from "react-native";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
@@ -43,7 +44,7 @@ export const fetchAboutAppData = async (version) => {
     console.error("Błąd pobierania danych o aplikacji ", error.message);
   }
 };
-export const handleLogin = async (login, password, rememberMe) => {
+export const handleLogin = async (login, password, rememberMe, navigation) => {
   try {
     const response = await fetch(`${BASE_URL}/login`, {
       method: "POST",
@@ -55,15 +56,22 @@ export const handleLogin = async (login, password, rememberMe) => {
         password: password,
       }),
     });
-    if (!response.ok) {
-      throw new Error("Błąd logowania");
+    if (response.status === 401) {
+      Alert.alert("Błąd", "Niepoprawny login lub hasło");
     }
     const data = await response.json();
-    // await AsyncStorage.setItem("isLoggedIn", "true");
-
-    console.log(data);
-    console.log(rememberMe);
+    const token = data.token;
+    const decoded = jwtDecode(token);
+    console.log(decoded);
+    if (decoded.login_completed === 1) {
+      await AsyncStorage.setItem("isLoggedIn", "true");
+      await AsyncStorage.setItem("userToken", token);
+      navigation.replace("Calendar");
+    } else {
+      await AsyncStorage.setItem("userToken", token);
+      navigation.replace("FirstLogin");
+    }
   } catch (error) {
-    Alert.alert("Błąd", "Niepoprawny login lub hasło");
+    console.error("Błąd", error);
   }
 };
