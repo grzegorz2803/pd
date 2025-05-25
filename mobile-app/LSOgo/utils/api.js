@@ -75,10 +75,34 @@ export const handleLogin = async (login, password, rememberMe, navigation) => {
     console.error("Błąd", error);
   }
 };
+
+export const sendEmail = async (email) => {
+  try {
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/api/send-verification-code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ email }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
+export const verifyCode = async (code) => {};
+export const newPassword = async (password) => {};
+
 export const handleCancel = (navigation) => {
   navigation.replace("Calendar");
 };
 export const validateEmail = (email) => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
+};
+export const validatePassword = (password) => {
+  const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return regex.test(password);
 };

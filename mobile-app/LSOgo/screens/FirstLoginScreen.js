@@ -1,23 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
-  ScrollView,
   ImageBackground,
   Text,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   Image,
+  Alert,
 } from "react-native";
 import { Dimensions } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { RFValue } from "react-native-responsive-fontsize";
-import { handleCancel } from "../utils/api";
-import { validateEmail } from "../utils/api";
+import {
+  handleCancel,
+  validateEmail,
+  sendEmail,
+  verifyCode,
+  newPassword,
+  validatePassword,
+} from "../utils/api";
+
 const { width, height } = Dimensions.get("window");
 
 export default function FirstLoginScreen({ navigation }) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(3);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +62,17 @@ export default function FirstLoginScreen({ navigation }) {
                   Niepoprawny adres e-mail
                 </Text>
               )}
-              <TouchableOpacity style={styles.primaryButton}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={async () => {
+                  const result = await sendEmail(email);
+                  if (result.success) {
+                    setStep(2);
+                  } else {
+                    Alert.alert("Błąd", result.message);
+                  }
+                }}
+              >
                 <Text style={styles.buttonText}>Wyślij</Text>
               </TouchableOpacity>
             </>
@@ -71,7 +88,17 @@ export default function FirstLoginScreen({ navigation }) {
                 keyboardType="numeric"
                 placeholderTextColor="#555"
               />
-              <TouchableOpacity style={styles.primaryButton}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={async () => {
+                  const result = await verifyCode(code);
+                  if (result.success) {
+                    setStep(3);
+                  } else {
+                    Alert.alert("Błąd", result.message);
+                  }
+                }}
+              >
                 <Text style={styles.buttonText}>Potwierdź</Text>
               </TouchableOpacity>
             </>
@@ -87,6 +114,12 @@ export default function FirstLoginScreen({ navigation }) {
                 placeholder="Nowe hasło"
                 placeholderTextColor="#555"
               />
+              {password !== "" && !validatePassword(password) && (
+                <Text style={{ color: "red", marginTop: -10, marginBottom: 5 }}>
+                  Hasło musi zawierać 8 znaków w tym: 1 cyfra, 1 duza litera, 1
+                  zank specjalny
+                </Text>
+              )}
               <Text style={styles.label}>Powtórz hasło</Text>
               <TextInput
                 style={styles.input}
@@ -96,7 +129,15 @@ export default function FirstLoginScreen({ navigation }) {
                 placeholder="Powtórz hasło"
                 placeholderTextColor="#555"
               />
-              <TouchableOpacity style={styles.primaryButton}>
+              {confirmPassword !== "" && password !== confirmPassword && (
+                <Text style={{ color: "red", marginTop: -10, marginBottom: 5 }}>
+                  Hasło nie są zgodne
+                </Text>
+              )}
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => newPassword(password)}
+              >
                 <Text style={styles.buttonText}>Ustaw hasło</Text>
               </TouchableOpacity>
             </>
