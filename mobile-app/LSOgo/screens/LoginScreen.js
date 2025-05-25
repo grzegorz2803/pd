@@ -17,9 +17,13 @@ const { width, height } = Dimensions.get("window");
 import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
 import BottomNavGuest from "../components/BottomNavGuest";
+import { handleLogin } from "../utils/api";
 const rememberMe = false;
 export default function LoginScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -42,7 +46,8 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="Login"
-              //   value={login}
+              value={login}
+              onChangeText={setLogin}
               placeholderTextColor="#444"
             />
           </View>
@@ -54,7 +59,9 @@ export default function LoginScreen({ navigation }) {
             <TextInput
               style={styles.input}
               placeholder="Password"
-              //   value={login}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
               placeholderTextColor="#444"
             />
           </View>
@@ -64,11 +71,16 @@ export default function LoginScreen({ navigation }) {
                 name={rememberMe ? "checkbox" : "square-outline"}
                 size={RFValue(20)}
                 color="#000"
+                value={rememberMe}
+                onValueChange={setRememberMe}
               />
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>Zapamiętaj mnie</Text>
           </View>
-          <TouchableOpacity style={styles.loginButton}>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => handleLogin(login, password, rememberMe)}
+          >
             <Text style={styles.loginText}>Zaloguj się</Text>
           </TouchableOpacity>
           <TouchableOpacity>
