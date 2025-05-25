@@ -9,8 +9,10 @@ const {
     updateOrInsertPoints,
     getLiturgicalDataToday,
     getLiturgicalDataWeek,
-    getAboutApp
+    getAboutApp,
+    authorization
 } = require('./db')
+const {log} = require("debug");
 const router = express.Router();
 
 router.get('/data', (req, res) => {
@@ -106,8 +108,15 @@ router.post("/data", async (req, res) => {
 });
 router.post("/login", async (req,res  ) => {
   const {login, password} = req.body;
-  console.log(login);
-  console.log(password);
-  res.status(200).json("ok");
-})
+
+  if(!login || !password){
+      return res.status(400).json({message: 'Brak loginu lub hasła'});
+  }
+ const result =  await  authorization(login,password);
+  console.log(result);
+    return res.status(result.status).json({
+        message: result.message,
+        token: result.token || null,
+    });
+});
 module.exports = router;

@@ -2,11 +2,14 @@ const mysql = require('mysql2/promise');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'g_admin',
-    password: 'zaq1@WSX',
-    database: 'lso',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -375,7 +378,7 @@ async function getLiturgicalDataWeek() {
 
         rows.forEach(row => {
             const formattedDate = dayjs.utc(row.date).tz('Europe/Warsaw').format('DD-MM-YYYY');
-            if(!groupedByDate[formattedDate]) {
+            if (!groupedByDate[formattedDate]) {
                 groupedByDate[formattedDate] = {
                     date: formattedDate,
                     dayName: row.day_name,
@@ -386,26 +389,67 @@ async function getLiturgicalDataWeek() {
                 name: row.name,
                 color: row.color
             };
-            if(row.sigla) celebration.sigla = row.sigla;
-            if(row.notes) celebration.note = row.notes;
+            if (row.sigla) celebration.sigla = row.sigla;
+            if (row.notes) celebration.note = row.notes;
 
             groupedByDate[formattedDate].celebrations.push(celebration);
         });
-        return  Object.values(groupedByDate);
+        return Object.values(groupedByDate);
     } catch (error) {
         console.error("Błąd", error);
         throw error;
     }
 }
-async function getAboutApp(versionApp){
-const query = `SELECT * FROM about_app WHERE version = ?`;
-try{
-    const [result] = await pool.execute(query, [versionApp]);
-    return result;
-}catch (error){
-    console.error("Błąd", error);
-    throw  error;
+
+async function getAboutApp(versionApp) {
+    const query = `SELECT *
+                   FROM about_app
+                   WHERE version = ?`;
+    try {
+        const [result] = await pool.execute(query, [versionApp]);
+        return result;
+    } catch (error) {
+        console.error("Błąd", error);
+        throw error;
+    }
 }
+
+async function authorization(login, password) {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
+        );
+
+        if(rows[0]===undefined){
+            return {success: false, status: 401, message: 'Nieprawidłowy login'};
+        }
+        const user = rows[0];
+console.log(user);
+        const match = await bcrypt.compare(password,user.password_hash);
+        if(!match){
+            return {success: false, status: 401, message: 'Nieprawidłowe hasło'};
+        }
+        const token = jwt.sign(
+            {
+                login: user.login,
+                email: user.email,
+                role: user.role,
+                function: user.user_function,
+                login_completed: user.first_login_completed,
+            },
+            process.env.JWT_SECRET,
+            {expiresIn: '12h'}
+        );
+        return {
+            success: true,
+            status: 200,
+            message: 'Zalogowano pomyślnie',
+            token
+        };
+    } catch (error) {
+        console.error('Błąd logowania', error);
+        return {success: false, status: 500, message: 'Błąd serwera'};
+    }
 }
 
 module.exports = {
@@ -418,5 +462,6 @@ module.exports = {
     updateOrInsertPoints,
     getLiturgicalDataToday,
     getLiturgicalDataWeek,
-    getAboutApp
+    getAboutApp,
+    authorization
 };
