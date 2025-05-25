@@ -10,7 +10,9 @@ const {
   getLiturgicalDataToday,
   getLiturgicalDataWeek,
   getAboutApp,
+  authorization,
 } = require("./db");
+const { log } = require("debug");
 const router = express.Router();
 
 router.get("/data", (req, res) => {
@@ -110,5 +112,18 @@ router.post("/data", async (req, res) => {
     res.status(500).json({ error: "Błąd serwera" });
     console.log("Rzucono wyjątek");
   }
+});
+router.post("/login", async (req, res) => {
+  const { login, password } = req.body;
+
+  if (!login || !password) {
+    return res.status(400).json({ message: "Brak loginu lub hasła" });
+  }
+  const result = await authorization(login, password);
+  console.log(result);
+  return res.status(result.status).json({
+    message: result.message,
+    token: result.token || null,
+  });
 });
 module.exports = router;
