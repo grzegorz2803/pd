@@ -5,6 +5,7 @@ import SplashScreen from "./screens/SplashScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import LoginScreen from "./screens/LoginScreen";
 import AboutScreen from "./screens/AboutScreen";
+import FirstLoginScreen from "./screens/FirstLoginScreen";
 import { useFonts } from "expo-font";
 import AppLoading from "expo-app-loading";
 import { AuthProvider } from "./context/AuthContext";
@@ -30,6 +31,7 @@ export default function App() {
           <Stack.Screen name="Calendar" component={CalendarScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="FirstLogin" component={FirstLoginScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

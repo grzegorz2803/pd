@@ -1,3 +1,7 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import jwtDecode from "jwt-decode";
+import { Alert } from "react-native";
+
 const BASE_URL = "http://192.168.1.193:3000/api";
 
 export async function isServerAvailable() {
@@ -38,5 +42,36 @@ export const fetchAboutAppData = async (version) => {
     return response.json();
   } catch (error) {
     console.error("Błąd pobierania danych o aplikacji ", error.message);
+  }
+};
+export const handleLogin = async (login, password, rememberMe, navigation) => {
+  try {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login: login,
+        password: password,
+      }),
+    });
+    if (response.status === 401) {
+      Alert.alert("Błąd", "Niepoprawny login lub hasło");
+    }
+    const data = await response.json();
+    const token = data.token;
+    const decoded = jwtDecode(token);
+    console.log(decoded);
+    if (decoded.login_completed === 1) {
+      await AsyncStorage.setItem("isLoggedIn", "true");
+      await AsyncStorage.setItem("userToken", token);
+      navigation.replace("Calendar");
+    } else {
+      await AsyncStorage.setItem("userToken", token);
+      navigation.replace("FirstLogin");
+    }
+  } catch (error) {
+    console.error("Błąd", error);
   }
 };
