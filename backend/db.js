@@ -424,7 +424,6 @@ async function authorization(login, password) {
             return {success: false, status: 401, message: 'Nieprawidłowy login'};
         }
         const user = rows[0];
-console.log(user);
         const match = await bcrypt.compare(password,user.password_hash);
         if(!match){
             return {success: false, status: 401, message: 'Nieprawidłowe hasło'};
