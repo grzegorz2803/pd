@@ -75,3 +75,10 @@ export const handleLogin = async (login, password, rememberMe, navigation) => {
     console.error("Błąd", error);
   }
 };
+export const handleCancel = (navigation) => {
+  navigation.replace("Calendar");
+};
+export const validateEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
