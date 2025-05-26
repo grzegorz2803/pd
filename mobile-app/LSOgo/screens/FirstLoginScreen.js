@@ -20,10 +20,12 @@ import {
   newPassword,
   validatePassword,
 } from "../utils/api";
-
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 const { width, height } = Dimensions.get("window");
 
 export default function FirstLoginScreen({ navigation }) {
+  const { logout } = useContext(AuthContext);
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -139,6 +141,7 @@ export default function FirstLoginScreen({ navigation }) {
                 onPress={async () => {
                   const result = await newPassword(password);
                   if (result.success) {
+                    await logout();
                     navigation.replace("Login");
                   } else {
                     Alert.alert("Błąd", result.message);

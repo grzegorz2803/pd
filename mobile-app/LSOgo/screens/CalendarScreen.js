@@ -13,12 +13,14 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavGuest from "../components/BottomNavGuest";
+import BottomNavUser from "../components/BottomNavUser";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { fetchTodayLiturgicalData } from "../utils/api";
 import { fetchWeekLiturgicalData } from "../utils/api";
 import { RectButton } from "react-native-gesture-handler";
 import { withDecay } from "react-native-reanimated";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width, height } = Dimensions.get("window");
 export default function CalendarScreen({ route, navigation }) {
   const [expandedDayIndex, setExpandendDayIndex] = useState(-1);
@@ -29,6 +31,10 @@ export default function CalendarScreen({ route, navigation }) {
   useEffect(() => {
     const loadToday = async () => {
       try {
+        // const token = await AsyncStorage.getItem("userToken");
+        // const loggedIn = await AsyncStorage.getItem("isLoggedIn");
+        // console.log(token);
+        // console.log(loggedIn);
         const today = await fetchTodayLiturgicalData();
         const week = await fetchWeekLiturgicalData();
         setTodayData(today);
@@ -192,6 +198,7 @@ export default function CalendarScreen({ route, navigation }) {
           })}
         </ScrollView>
       </SafeAreaView>
+      {loggedIn && <BottomNavUser navigation={navigation} />}
       {!loggedIn && <BottomNavGuest navigation={navigation} />}
     </ImageBackground>
   );

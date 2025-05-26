@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 import { Alert } from "react-native";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
 
@@ -44,7 +47,13 @@ export const fetchAboutAppData = async (version) => {
     console.error("Błąd pobierania danych o aplikacji ", error.message);
   }
 };
-export const handleLogin = async (login, password, rememberMe, navigation) => {
+export const handleLogin = async (
+  login,
+  password,
+  rememberMe,
+  navigation,
+  setLoggedIn
+) => {
   try {
     const response = await fetch(`${BASE_URL}/login`, {
       method: "POST",
@@ -66,9 +75,11 @@ export const handleLogin = async (login, password, rememberMe, navigation) => {
     if (decoded.login_completed === 1) {
       await AsyncStorage.setItem("isLoggedIn", "true");
       await AsyncStorage.setItem("userToken", token);
+      setLoggedIn(true);
       navigation.replace("Calendar");
     } else {
       await AsyncStorage.setItem("userToken", token);
+      setLoggedIn(false);
       navigation.replace("FirstLogin");
     }
   } catch (error) {
@@ -129,7 +140,6 @@ export const newPassword = async (password) => {
     if (!response.ok) {
       return await response.json();
     }
-    logout();
     return await response.json();
   } catch (error) {
     console.error("Błąd", error);
@@ -147,11 +157,5 @@ export const validatePassword = (password) => {
   const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   return regex.test(password);
 };
-const logout = async () => {
-  try {
-    await AsyncStorage.removeItem("userToken");
-    await AsyncStorage.removeItem("isLoggedIn");
-  } catch (error) {
-    console.error("Błąd usuwania", error);
-  }
-};
+
+export const registerDeviceToken = async () => {};

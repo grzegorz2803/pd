@@ -20,7 +20,7 @@ import BottomNavGuest from "../components/BottomNavGuest";
 import { handleLogin } from "../utils/api";
 const rememberMe = false;
 export default function LoginScreen({ navigation }) {
-  const { loggedIn } = useContext(AuthContext);
+  const { loggedIn, setLoggedIn } = useContext(AuthContext);
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -81,7 +81,9 @@ export default function LoginScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => handleLogin(login, password, rememberMe, navigation)}
+            onPress={() =>
+              handleLogin(login, password, rememberMe, navigation, setLoggedIn)
+            }
           >
             <Text style={styles.loginText}>Zaloguj się</Text>
           </TouchableOpacity>
