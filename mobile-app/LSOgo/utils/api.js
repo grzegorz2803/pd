@@ -88,9 +88,7 @@ export const sendEmail = async (email) => {
       body: JSON.stringify({ email }),
     });
     if (!response.ok) {
-      const text = await response.text();
-      console.error("Błąd serwera:", response.status, text);
-      throw new Error("Błąd podczas wysyłania emaila");
+      return await response.json();
     }
     return await response.json();
   } catch (error) {
@@ -108,6 +106,11 @@ export const verifyCode = async (code) => {
       },
       body: JSON.stringify({ code }),
     });
+    if (!response.ok) {
+      const text = await response.json();
+      Alert.alert("Błąd:", response.status, text.message);
+      throw new Error("Błąd podczas wysyłania emaila");
+    }
     return await response.json();
   } catch (error) {
     console.error("Błąd", error);
