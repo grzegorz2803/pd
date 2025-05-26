@@ -24,7 +24,7 @@ import {
 const { width, height } = Dimensions.get("window");
 
 export default function FirstLoginScreen({ navigation }) {
-  const [step, setStep] = useState(3);
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");

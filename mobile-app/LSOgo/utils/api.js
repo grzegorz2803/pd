@@ -92,8 +92,38 @@ export const sendEmail = async (email) => {
     console.error("Błąd", error);
   }
 };
-export const verifyCode = async (code) => {};
-export const newPassword = async (password) => {};
+export const verifyCode = async (code) => {
+  try {
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/api/verify-code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ code }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
+export const newPassword = async (password) => {
+  try {
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/api/new-passord`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
 
 export const handleCancel = (navigation) => {
   navigation.replace("Calendar");
