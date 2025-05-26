@@ -11,10 +11,13 @@ const {
   getLiturgicalDataWeek,
   getAboutApp,
   authorization,
+  updateEmail,
+  verificationCode,
+  newPassword,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
-
+const authenticateToken = require("./middleware/authenticateToken");
 router.get("/data", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -125,5 +128,32 @@ router.post("/login", async (req, res) => {
     message: result.message,
     token: result.token || null,
   });
+});
+router.post("/send-verification-code", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { email } = req.body;
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Brak adresu e-mail" });
+  }
+  await updateEmail(userId, email, res);
+});
+router.post("/verify-code", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ success: false, message: "Brak kodu" });
+  }
+  await verificationCode(userId, code, res);
+});
+router.post("/new-password", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ success: false, message: "Brak hasła" });
+  }
+  await newPassword(userId, password, res);
 });
 module.exports = router;

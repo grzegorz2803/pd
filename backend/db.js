@@ -14,6 +14,14 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+const nodemailer = require("nodemailer");
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -462,7 +470,7 @@ async function getAboutApp(versionApp) {
 async function authorization(login, password) {
   try {
     const [rows] = await pool.execute(
-      "SELECT login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?",
+      "SELECT id_auth, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?",
       [login]
     );
 
@@ -476,6 +484,7 @@ async function authorization(login, password) {
     }
     const token = jwt.sign(
       {
+        id: user.id_auth,
         login: user.login,
         email: user.email,
         role: user.role,
@@ -483,7 +492,7 @@ async function authorization(login, password) {
         login_completed: user.first_login_completed,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "12h" }
+      { expiresIn: "24h" }
     );
     return {
       success: true,
@@ -494,6 +503,105 @@ async function authorization(login, password) {
   } catch (error) {
     console.error("Błąd logowania", error);
     return { success: false, status: 500, message: "Błąd serwera" };
+  }
+}
+
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function updateEmail(idUser, email, res) {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id_auth FROM auth WHERE  email = ? AND id_auth !=?",
+      [email, idUser]
+    );
+    console.log(rows[0]);
+    if (rows[0] !== undefined) {
+      return res.status(409).json({
+        success: false,
+        message: "Podany adres email jest już używany przez innego użytkownika",
+      });
+    }
+    await pool.execute("UPDATE auth SET email = ? WHERE id_auth= ?", [
+      email,
+      idUser,
+    ]);
+    const verificationCode = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await transporter.sendMail({
+      from: '"LSOgo App" <powiadomienia@lsogo.pl>',
+      to: email,
+      subject: "Twój kod weryfikacyjny",
+      text: `Twój kod weryfikacyjny to: ${verificationCode}`,
+    });
+    await pool.execute(
+      "INSERT INTO email_verification_codes (user_id, verification_code, expires_at, used) VALUES (?,?,?,0)",
+      [idUser, verificationCode, expiresAt]
+    );
+    return res.status(200).json({
+      success: true,
+      message: "Kod został wysłany",
+    });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji e-maila", error);
+    return res.status(500).json({
+      success: false,
+      message: "Wystąpił błąd serwera",
+    });
+  }
+}
+
+async function verificationCode(userID, code, res) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT *
+                                           FROM email_verification_codes
+                                           WHERE user_id = ?
+                                             AND verification_code = ?
+                                             AND used = 0
+                                             AND expires_at > NOW()
+                                           ORDER BY id DESC LIMIT 1`,
+      [userID, code]
+    );
+    if (rows[0] === undefined) {
+      return res
+        .status(400)
+        .json({
+          succes: false,
+          message: "Nieprawidłowy kod lub upłynął czas ",
+        });
+    }
+    const verificationId = rows[0].id;
+    await pool.execute(
+      `UPDATE email_verification_codes
+                            SET used = 1
+                            WHERE id = ?`,
+      [verificationId]
+    );
+    return res
+      .status(200)
+      .json({ success: true, message: "Email zweryfikowany" });
+  } catch (error) {
+    console.error("Błąd weryfikacji kodu", error);
+    return res.status(500).json({ success: false, message: "Błąd serwera" });
+  }
+}
+async function newPassword(userId, password, res) {
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    await pool.execute(
+      `UPDATE auth SET password_hash = ?, first_login_completed = 1, is_email_verified = 1  WHERE id_auth = ?`,
+      [hash, userId]
+    );
+    return res
+      .status(200)
+      .json({ success: true, message: "Hasło zostało ustawione" });
+  } catch (error) {
+    console.error("Błąd przy zmianie hasła", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Błąd serwera przy zmianie hasła" });
   }
 }
 
@@ -509,4 +617,7 @@ module.exports = {
   getLiturgicalDataWeek,
   getAboutApp,
   authorization,
+  updateEmail,
+  verificationCode,
+  newPassword,
 };
