@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 import { Alert } from "react-native";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
 
@@ -44,7 +47,13 @@ export const fetchAboutAppData = async (version) => {
     console.error("Błąd pobierania danych o aplikacji ", error.message);
   }
 };
-export const handleLogin = async (login, password, rememberMe, navigation) => {
+export const handleLogin = async (
+  login,
+  password,
+  rememberMe,
+  navigation,
+  setLoggedIn
+) => {
   try {
     const response = await fetch(`${BASE_URL}/login`, {
       method: "POST",
@@ -66,12 +75,87 @@ export const handleLogin = async (login, password, rememberMe, navigation) => {
     if (decoded.login_completed === 1) {
       await AsyncStorage.setItem("isLoggedIn", "true");
       await AsyncStorage.setItem("userToken", token);
+      setLoggedIn(true);
       navigation.replace("Calendar");
     } else {
       await AsyncStorage.setItem("userToken", token);
+      setLoggedIn(false);
       navigation.replace("FirstLogin");
     }
   } catch (error) {
     console.error("Błąd", error);
   }
 };
+
+export const sendEmail = async (email) => {
+  try {
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/send-verification-code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      return await response.json();
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
+export const verifyCode = async (code) => {
+  try {
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/verify-code`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) {
+      return await response.json();
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
+export const newPassword = async (password) => {
+  try {
+    console.log(password);
+    const jwt = await AsyncStorage.getItem("userToken");
+    const response = await fetch(`${BASE_URL}/new-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      return await response.json();
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Błąd", error);
+  }
+};
+
+export const handleCancel = (navigation) => {
+  navigation.replace("Calendar");
+};
+export const validateEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+export const validatePassword = (password) => {
+  const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  return regex.test(password);
+};
+
+export const registerDeviceToken = async () => {};

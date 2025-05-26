@@ -11,8 +11,17 @@ export const AuthProvider = ({ children }) => {
     };
     checkLogin();
   }, []);
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("isLoggedIn");
+      setLoggedIn(false);
+    } catch (error) {
+      console.error("Bład usuwania danych logowania", error);
+    }
+  };
   return (
-    <AuthContext.Provider value={{ loggedIn, setLoggedIn }}>
+    <AuthContext.Provider value={{ loggedIn, setLoggedIn, logout }}>
       {children}
     </AuthContext.Provider>
   );

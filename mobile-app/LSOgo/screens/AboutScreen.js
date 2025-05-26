@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import BottomNavGuest from "../components/BottomNavGuest";
+import BottomNavUser from "../components/BottomNavUser";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
@@ -83,6 +84,7 @@ export default function AboutScreen({ navigation }) {
           )}
         </ScrollView>
       </SafeAreaView>
+      {loggedIn && <BottomNavUser navigation={navigation} />}
       {!loggedIn && <BottomNavGuest navigation={navigation} />}
     </ImageBackground>
   );
