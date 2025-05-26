@@ -107,9 +107,7 @@ export const verifyCode = async (code) => {
       body: JSON.stringify({ code }),
     });
     if (!response.ok) {
-      const text = await response.json();
-      Alert.alert("Błąd:", response.status, text.message);
-      throw new Error("Błąd podczas wysyłania emaila");
+      return await response.json();
     }
     return await response.json();
   } catch (error) {
@@ -118,6 +116,7 @@ export const verifyCode = async (code) => {
 };
 export const newPassword = async (password) => {
   try {
+    console.log(password);
     const jwt = await AsyncStorage.getItem("userToken");
     const response = await fetch(`${BASE_URL}/new-password`, {
       method: "POST",
@@ -127,6 +126,10 @@ export const newPassword = async (password) => {
       },
       body: JSON.stringify({ password }),
     });
+    if (!response.ok) {
+      return await response.json();
+    }
+    logout();
     return await response.json();
   } catch (error) {
     console.error("Błąd", error);
@@ -143,4 +146,12 @@ export const validateEmail = (email) => {
 export const validatePassword = (password) => {
   const regex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   return regex.test(password);
+};
+const logout = async () => {
+  try {
+    await AsyncStorage.removeItem("userToken");
+    await AsyncStorage.removeItem("isLoggedIn");
+  } catch (error) {
+    console.error("Błąd usuwania", error);
+  }
 };

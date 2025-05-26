@@ -136,7 +136,14 @@ export default function FirstLoginScreen({ navigation }) {
               )}
               <TouchableOpacity
                 style={styles.primaryButton}
-                onPress={() => newPassword(password)}
+                onPress={async () => {
+                  const result = newPassword(password);
+                  if (result.success) {
+                    navigation.replace("Login");
+                  } else {
+                    Alert.alert("Błąd", result.message);
+                  }
+                }}
               >
                 <Text style={styles.buttonText}>Ustaw hasło</Text>
               </TouchableOpacity>
