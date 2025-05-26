@@ -17,7 +17,7 @@ const pool = mysql.createPool({
 const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth:{
+    auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     }
@@ -459,9 +459,11 @@ async function authorization(login, password) {
         return {success: false, status: 500, message: 'Błąd serwera'};
     }
 }
+
 function generateVerificationCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
 async function updateEmail(idUser, email, res) {
     try {
         const [rows] = await pool.execute('SELECT id_auth FROM auth WHERE  email = ? AND id_auth !=?', [email, idUser]);
@@ -495,6 +497,30 @@ async function updateEmail(idUser, email, res) {
     }
 }
 
+async function verificationCode(userID, code, res) {
+    try {
+        const [rows] = await pool.execute(`SELECT *
+                                           FROM email_verification_codes
+                                           WHERE user_id = ?
+                                             AND verification_code = ?
+                                             AND used = 0
+                                             AND expires_at > NOW()
+                                           ORDER BY id DESC LIMIT 1`,
+            [userID, code]);
+        if (rows[0] === undefined) {
+            return res.status(400).json({succes: false, message: 'Nieprawidłowy kod lub upłynął czas '});
+        }
+        const verificationId = rows[0].id;
+        await pool.execute(`UPDATE email_verification_codes
+                            SET used = 1
+                            WHERE id = ?`, [verificationId]);
+        return res.status(200).json({success: true, message: 'Email zweryfikowany'});
+    } catch (error) {
+        console.error('Błąd weryfikacji kodu', error);
+        return res.status(500).json({success: false, message: 'Błąd serwera'});
+    }
+}
+
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -507,5 +533,6 @@ module.exports = {
     getLiturgicalDataWeek,
     getAboutApp,
     authorization,
-    updateEmail
+    updateEmail,
+    verificationCode
 };

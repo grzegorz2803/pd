@@ -12,6 +12,7 @@ const {
     getAboutApp,
     authorization,
     updateEmail,
+    verificationCode,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -133,7 +134,10 @@ await updateEmail(userId, email, res);
 router.post("/verify-code",authenticateToken, async (req,res) => {
     const userId = req.user.id;
     const {code} = req.body;
-    console.log(code);
+   if(!code){
+       return res.status(400).json({success: false, message: 'Brak kodu'});
+   }
+   await verificationCode(userId, code, res);
 })
 router.post("/new-password", async (req,res) => {
 
