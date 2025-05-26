@@ -137,7 +137,7 @@ export default function FirstLoginScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={async () => {
-                  const result = newPassword(password);
+                  const result = await newPassword(password);
                   if (result.success) {
                     navigation.replace("Login");
                   } else {
