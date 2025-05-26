@@ -446,7 +446,7 @@ async function authorization(login, password) {
                 login_completed: user.first_login_completed,
             },
             process.env.JWT_SECRET,
-            {expiresIn: '12h'}
+            {expiresIn: '24h'}
         );
         return {
             success: true,
