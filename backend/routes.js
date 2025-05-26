@@ -148,4 +148,7 @@ router.post("/new-password", authenticateToken, async (req,res) => {
     }
     await newPassword(userId, password, res);
 })
+router.post("/device/register", authenticateToken, async (req,res)=>{
+
+})
 module.exports = router;

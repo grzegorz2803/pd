@@ -425,7 +425,7 @@ async function getAboutApp(versionApp) {
 async function authorization(login, password) {
     try {
         const [rows] = await pool.execute(
-            'SELECT id_auth, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
+            'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
         );
 
         if (rows[0] === undefined) {
@@ -439,6 +439,7 @@ async function authorization(login, password) {
         const token = jwt.sign(
             {
                 id: user.id_auth,
+                card_id: user.card_id,
                 login: user.login,
                 email: user.email,
                 role: user.role,
