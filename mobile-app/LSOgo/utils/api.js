@@ -79,7 +79,7 @@ export const handleLogin = async (login, password, rememberMe, navigation) => {
 export const sendEmail = async (email) => {
   try {
     const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/api/send-verification-code`, {
+    const response = await fetch(`${BASE_URL}/send-verification-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,6 +87,11 @@ export const sendEmail = async (email) => {
       },
       body: JSON.stringify({ email }),
     });
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Błąd serwera:", response.status, text);
+      throw new Error("Błąd podczas wysyłania emaila");
+    }
     return await response.json();
   } catch (error) {
     console.error("Błąd", error);
@@ -95,7 +100,7 @@ export const sendEmail = async (email) => {
 export const verifyCode = async (code) => {
   try {
     const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/api/verify-code`, {
+    const response = await fetch(`${BASE_URL}/verify-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,7 +116,7 @@ export const verifyCode = async (code) => {
 export const newPassword = async (password) => {
   try {
     const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/api/new-passord`, {
+    const response = await fetch(`${BASE_URL}/new-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
