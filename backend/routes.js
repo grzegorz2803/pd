@@ -13,6 +13,7 @@ const {
     authorization,
     updateEmail,
     verificationCode,
+    newPassword,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -139,7 +140,12 @@ router.post("/verify-code",authenticateToken, async (req,res) => {
    }
    await verificationCode(userId, code, res);
 })
-router.post("/new-password", async (req,res) => {
-
+router.post("/new-password", authenticateToken, async (req,res) => {
+    const userId = req.user.id;
+    const {password} = req.body;
+    if(!password){
+        return res.status(400).json({success: false, message: 'Brak hasła'});
+    }
+    await newPassword(userId, password, res);
 })
 module.exports = router;

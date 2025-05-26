@@ -520,6 +520,16 @@ async function verificationCode(userID, code, res) {
         return res.status(500).json({success: false, message: 'Błąd serwera'});
     }
 }
+async function newPassword(userId, password, res){
+try{
+    const hash = await bcrypt.hash(password, 10);
+    await pool.execute(`UPDATE auth SET password_hash = ?, first_login_completed = 1, is_email_verified = 1  WHERE id_auth = ?`, [hash, userId]);
+    return res.status(200).json({success: true, message: 'Hasło zostało ustawione'});
+}catch(error){
+    console.error('Błąd przy zmianie hasła', error);
+    return  res.status(500).json({success: false, message: 'Błąd serwera przy zmianie hasła'});
+}
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -534,5 +544,6 @@ module.exports = {
     getAboutApp,
     authorization,
     updateEmail,
-    verificationCode
+    verificationCode,
+    newPassword
 };
