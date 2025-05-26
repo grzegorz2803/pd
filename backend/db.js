@@ -14,6 +14,14 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth:{
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    }
+});
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -420,17 +428,17 @@ async function authorization(login, password) {
             'SELECT id_auth, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
         );
 
-        if(rows[0]===undefined){
+        if (rows[0] === undefined) {
             return {success: false, status: 401, message: 'Nieprawidłowy login'};
         }
         const user = rows[0];
-        const match = await bcrypt.compare(password,user.password_hash);
-        if(!match){
+        const match = await bcrypt.compare(password, user.password_hash);
+        if (!match) {
             return {success: false, status: 401, message: 'Nieprawidłowe hasło'};
         }
         const token = jwt.sign(
             {
-              id: user.id_auth,
+                id: user.id_auth,
                 login: user.login,
                 email: user.email,
                 role: user.role,
@@ -451,6 +459,41 @@ async function authorization(login, password) {
         return {success: false, status: 500, message: 'Błąd serwera'};
     }
 }
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+async function updateEmail(idUser, email, res) {
+    try {
+        const [rows] = await pool.execute('SELECT id_auth FROM auth WHERE  email = ? AND id_auth !=?', [email, idUser]);
+        console.log(rows[0]);
+        if (rows[0] !== undefined) {
+            return res.status(409).json({
+                success: false,
+                message: 'Podany adres email jest już używany przez innego użytkownika',
+            });
+        }
+        await pool.execute('UPDATE auth SET email = ? WHERE id_auth= ?', [email, idUser]);
+        const verificationCode = generateVerificationCode();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        await transporter.sendMail({
+            from: '"LSOgo App" <powiadomienia@lsogo.pl>',
+            to: email,
+            subject: 'Twój kod weryfikacyjny',
+            text: `Twój kod weryfikacyjny to: ${verificationCode}`,
+        });
+        await pool.execute('INSERT INTO email_verification_codes (user_id, verification_code, expires_at, used) VALUES (?,?,?,0)', [idUser, verificationCode, expiresAt]);
+        return res.status(200).json({
+            success: true,
+            message: 'Kod został wysłany',
+        })
+    } catch (error) {
+        console.error('Błąd podczas aktualizacji e-maila', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Wystąpił błąd serwera',
+        });
+    }
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -463,5 +506,6 @@ module.exports = {
     getLiturgicalDataToday,
     getLiturgicalDataWeek,
     getAboutApp,
-    authorization
+    authorization,
+    updateEmail
 };

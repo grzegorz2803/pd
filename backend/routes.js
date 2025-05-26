@@ -10,7 +10,8 @@ const {
     getLiturgicalDataToday,
     getLiturgicalDataWeek,
     getAboutApp,
-    authorization
+    authorization,
+    updateEmail,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -119,21 +120,22 @@ router.post("/login", async (req,res  ) => {
         token: result.token || null,
     });
 });
-router.post("send-verification-code", authorization,  async (req,res) => {
+router.post("/send-verification-code", authenticateToken,  async (req,res) => {
 const userId = req.user.id;
-const {email} = req.email;
+const {email} = req.body;
 
 if(!email){
   return res.status(400).json({success: false, message: 'Brak adresu e-mail'});
 }
-console.log(email);
-return res.status(200).json({success: false, message: 'Podany adres email istnieje w bazie '});
+await updateEmail(userId, email, res);
 
 })
-router.post("verify-code", async (req,res) => {
-
+router.post("/verify-code",authenticateToken, async (req,res) => {
+    const userId = req.user.id;
+    const {code} = req.body;
+    console.log(code);
 })
-router.post("new-password", async (req,res) => {
+router.post("/new-password", async (req,res) => {
 
 })
 module.exports = router;
