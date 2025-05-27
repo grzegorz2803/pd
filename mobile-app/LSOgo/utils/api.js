@@ -1,9 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import jwtDecode from "jwt-decode";
 import { Alert } from "react-native";
-// import * as Device from "expo-device";
-// import * as Notifications from "expo-notifications";
-// import { Platform } from "react-native";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
 
@@ -158,49 +159,49 @@ export const validatePassword = (password) => {
   return regex.test(password);
 };
 
-// export const registerDeviceToken = async () => {
-//   try {
-//     if (!Device.isDevice) {
-//       console.warn("Push notification wymagają fizycznego urządzenia");
-//       return;
-//     }
-//     const { status: existingStatus } =
-//       await Notifications.getPermissionsAsync();
-//     let finalStatus = existingStatus;
-//     if (finalStatus !== "granted") {
-//       const { status } = await Notifications.requestPermissionsAsync();
-//       finalStatus = status;
-//     }
-//     if (finalStatus !== "granted") {
-//       console.warn("Brak zgody na powiadomienia push");
-//       return;
-//     }
-//     const tokenResponse = await Notifications.getExpoPushTokenAsync();
-//     const deviceToken = tokenResponse.data;
-//     console.log("Token urządzenia", deviceToken);
-//     const jwt = await AsyncStorage.getItem("userToken");
-//     if (!jwt) {
-//       console.warn("Brak tokena jwt");
-//       return;
-//     }
-//     const response = await fetch(`${BASE_URL}/device/register`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Bearer ${jwt}`,
-//       },
-//       body: JSON.stringify({
-//         device_token: deviceToken,
-//         platform: Platform.OS,
-//         app_version: Constants.expoConfig?.version || "unknown",
-//       }),
-//     });
-//     if (!response.ok) {
-//       console.error("Błąd rejestracji tokenu:", response.status);
-//     } else {
-//       console.log("Token urządzenia zarejestrowany pomyślnie");
-//     }
-//   } catch (error) {
-//     console.error("Błąd wysyłania tokenu urządzenia", error);
-//   }
-// };
+export const registerDeviceToken = async () => {
+  try {
+    if (Platform.OS !== "android" || !Device.isDevice) {
+      console.warn("Push notification wymagają fizycznego urządzenia");
+      return;
+    }
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (finalStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      console.warn("Brak zgody na powiadomienia push");
+      return;
+    }
+    const tokenResponse = await Notifications.getExpoPushTokenAsync();
+    const deviceToken = tokenResponse.data;
+    console.log("Token urządzenia", deviceToken);
+    const jwt = await AsyncStorage.getItem("userToken");
+    if (!jwt) {
+      console.warn("Brak tokena jwt");
+      return;
+    }
+    const response = await fetch(`${BASE_URL}/device/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({
+        device_token: deviceToken,
+        platform: Platform.OS,
+        app_version: Constants.expoConfig?.version || "unknown",
+      }),
+    });
+    if (!response.ok) {
+      console.error("Błąd rejestracji tokenu:", response.status);
+    } else {
+      console.log("Token urządzenia zarejestrowany pomyślnie");
+    }
+  } catch (error) {
+    console.error("Błąd wysyłania tokenu urządzenia", error);
+  }
+};
