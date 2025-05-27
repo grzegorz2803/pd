@@ -17,7 +17,7 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("About")}
+        onPress={() => navigation.navigate("Profil")}
       >
         <Image source={require("../assets/about.png")} style={styles.navIcon} />
         <Text style={styles.navText}>Profil</Text>
