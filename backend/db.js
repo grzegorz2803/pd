@@ -521,15 +521,33 @@ async function verificationCode(userID, code, res) {
         return res.status(500).json({success: false, message: 'Błąd serwera'});
     }
 }
-async function newPassword(userId, password, res){
-try{
-    const hash = await bcrypt.hash(password, 10);
-    await pool.execute(`UPDATE auth SET password_hash = ?, first_login_completed = 1, is_email_verified = 1  WHERE id_auth = ?`, [hash, userId]);
-    return res.status(200).json({success: true, message: 'Hasło zostało ustawione'});
-}catch(error){
-    console.error('Błąd przy zmianie hasła', error);
-    return  res.status(500).json({success: false, message: 'Błąd serwera przy zmianie hasła'});
+
+async function newPassword(userId, password, res) {
+    try {
+        const hash = await bcrypt.hash(password, 10);
+        await pool.execute(`UPDATE auth
+                            SET password_hash         = ?,
+                                first_login_completed = 1,
+                                is_email_verified     = 1
+                            WHERE id_auth = ?`, [hash, userId]);
+        return res.status(200).json({success: true, message: 'Hasło zostało ustawione'});
+    } catch (error) {
+        console.error('Błąd przy zmianie hasła', error);
+        return res.status(500).json({success: false, message: 'Błąd serwera przy zmianie hasła'});
+    }
 }
+
+async function registerDeviceToken(cardId, device_token, platform, app_version, res) {
+    try {
+        await pool.execute(`INSERT INTO device_tokens (card_id, device_token, platform, app_version, created_at)
+                            VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY
+                            UPDATE platform=?, app_version=?, created_at=NOW()`,
+            [cardId, device_token, platform, app_version, platform, app_version]);
+        res.status(200).json({message: "Token zapisany pomyślnie"});
+    } catch (error) {
+        console.error("Błąd zapisu tokenu:", error);
+        res.status(500).json({error: "Błąd serwera podczas zapisu tokenu"});
+    }
 }
 
 module.exports = {
@@ -546,5 +564,6 @@ module.exports = {
     authorization,
     updateEmail,
     verificationCode,
-    newPassword
+    newPassword,
+    registerDeviceToken
 };

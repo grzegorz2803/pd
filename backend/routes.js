@@ -14,6 +14,7 @@ const {
     updateEmail,
     verificationCode,
     newPassword,
+    registerDeviceToken,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -149,6 +150,11 @@ router.post("/new-password", authenticateToken, async (req,res) => {
     await newPassword(userId, password, res);
 })
 router.post("/device/register", authenticateToken, async (req,res)=>{
-
+const {device_token, platform, app_version} = req.body;
+if(!device_token || !platform){
+    return res.status(400).json({error: "Brak wymaganych danych"});
+}
+const cardId = req.user.card_id;
+await registerDeviceToken(cardId, device_token, platform, app_version, res);
 })
 module.exports = router;
