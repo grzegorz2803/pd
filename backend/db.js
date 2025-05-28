@@ -628,7 +628,10 @@ async function getProfilData(cardId, res) {
                                                     JOIN users u ON a.card_id = u.card_id
                                                     JOIN parishes p ON u.id_parish = p.id_parish
                                            WHERE a.card_id = ?`, [cardId]);
-   console.log(result);
+   if(result[0]===undefined){
+       return {message:"Błąd pobierania profilu"};
+   }
+   return res.json(result[0]);
     } catch (error) {
         console.error("Błąd pobierania danych o profilu", error);
         return res.status(500).json({message: "Błąd serwera"});

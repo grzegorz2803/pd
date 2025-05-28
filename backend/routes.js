@@ -168,8 +168,7 @@ router.post("/refresh-token", async (req, res)=>{
     await  refreshTokenF(refreshToken, appType,res);
 })
 router.post("/get-profil-data",authenticateToken,async (req,res)=>{
-    const cardId = req.card_id;
-    console.log(cardId);
-    await getProfilData(cardId, res);
+    const cardId = req.user.card_id;
+     await getProfilData(cardId, res);
 })
 module.exports = router;
