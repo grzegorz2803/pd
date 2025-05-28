@@ -423,7 +423,7 @@ async function getAboutApp(versionApp) {
     }
 }
 
-async function authorization(login, password,appType, res) {
+async function authorization(login, password, appType, res) {
     try {
         const [rows] = await pool.execute(
             'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
@@ -452,9 +452,9 @@ async function authorization(login, password,appType, res) {
         );
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
-        const expirestAt = new Date(Date.now()+14*24*60*60*1000);
+        const expirestAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
         await pool.execute('DELETE FROM refresh_tokens WHERE card_id = ? AND appType=?', [user.card_id, appType]);
-        await pool.execute('INSERT INTO refresh_tokens (card_id, token, expires_at, appType) VALUES (?,?,?,?)', [user.card_id, hashedRefreshToken, expirestAt,appType]);
+        await pool.execute('INSERT INTO refresh_tokens (card_id, token, expires_at, appType) VALUES (?,?,?,?)', [user.card_id, hashedRefreshToken, expirestAt, appType]);
 
         return res.status(200).json({
             success: true,
@@ -549,7 +549,7 @@ async function registerDeviceToken(cardId, device_token, platform, app_version, 
     try {
         await pool.execute(`INSERT INTO device_tokens (card_id, device_token, platform, app_version, created_at)
                             VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY
-                            UPDATE platform=?, app_version=?, created_at=NOW()`,
+                UPDATE platform=?, app_version=?, created_at=NOW()`,
             [cardId, device_token, platform, app_version, platform, app_version]);
         res.status(200).json({message: "Token zapisany pomyślnie"});
     } catch (error) {
@@ -557,60 +557,82 @@ async function registerDeviceToken(cardId, device_token, platform, app_version, 
         res.status(500).json({error: "Błąd serwera podczas zapisu tokenu"});
     }
 }
-async function logout(refreshToken, appType,res){
+
+async function logout(refreshToken, appType, res) {
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
-try{
+    try {
 
-    await pool.execute('DELETE FROM refresh_tokens WHERE token =? AND appType =? ',[hashedRefreshToken, appType]);
-    res.status(200).json({message: "Token zopisany poprawnie"});
-}catch (error){
-    console.error("Błąd usunięcia tokenu:", error);
-    res.status(500).json({error: "Błąd serwera podczas usunięcia tokenu"});
-}
-}
-async function refreshTokenF(refreshToken,appType, res){
-try{
-    const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
-
-    const [rows] = await pool.execute("SELECT card_id, expires_at FROM refresh_tokens WHERE token=? AND appType=?", [hashedToken, appType]);
-    if(rows[0]===undefined){
-        return res.status(403).json({message: "Nieprawidłowy lub nieważny token"});
+        await pool.execute('DELETE FROM refresh_tokens WHERE token =? AND appType =? ', [hashedRefreshToken, appType]);
+        res.status(200).json({message: "Token zopisany poprawnie"});
+    } catch (error) {
+        console.error("Błąd usunięcia tokenu:", error);
+        res.status(500).json({error: "Błąd serwera podczas usunięcia tokenu"});
     }
-    const tokenEntry = rows[0];
-    const now = new Date();
-
-    if(new Date(tokenEntry.expires_at)<now){
-        return res.status(403).json({message: "Token wygasł"});
-    }
-    const cardId = tokenEntry.card_id;
-    const [userRows] = await pool.execute(
-        'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE card_id=?', [cardId]
-    );
-    const user = userRows[0];
-    if(!user){
-        return  res.status(404).json({message: "Użytkownik nie istnieje "});
-
-    }
-    const newAccessToken = jwt.sign(
-        {
-            id: user.id_auth,
-            card_id: user.card_id,
-            login: user.login,
-            email: user.email,
-            role: user.role,
-            function: user.user_function,
-            login_completed: user.first_login_completed,
-        },
-        process.env.JWT_SECRET,
-        {expiresIn: '1h'}
-    );
-    return res.json({
-        token: newAccessToken,
-    });
-}catch (error){
-    console.error("Błąd odświeżania tokena:",error);
-    return res.status(500).json({message: "Błąd serwera"});
 }
+
+async function refreshTokenF(refreshToken, appType, res) {
+    try {
+        const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+
+        const [rows] = await pool.execute("SELECT card_id, expires_at FROM refresh_tokens WHERE token=? AND appType=?", [hashedToken, appType]);
+        if (rows[0] === undefined) {
+            return res.status(403).json({message: "Nieprawidłowy lub nieważny token"});
+        }
+        const tokenEntry = rows[0];
+        const now = new Date();
+
+        if (new Date(tokenEntry.expires_at) < now) {
+            return res.status(403).json({message: "Token wygasł"});
+        }
+        const cardId = tokenEntry.card_id;
+        const [userRows] = await pool.execute(
+            'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE card_id=?', [cardId]
+        );
+        const user = userRows[0];
+        if (!user) {
+            return res.status(404).json({message: "Użytkownik nie istnieje "});
+
+        }
+        const newAccessToken = jwt.sign(
+            {
+                id: user.id_auth,
+                card_id: user.card_id,
+                login: user.login,
+                email: user.email,
+                role: user.role,
+                function: user.user_function,
+                login_completed: user.first_login_completed,
+            },
+            process.env.JWT_SECRET,
+            {expiresIn: '1h'}
+        );
+        return res.json({
+            token: newAccessToken,
+        });
+    } catch (error) {
+        console.error("Błąd odświeżania tokena:", error);
+        return res.status(500).json({message: "Błąd serwera"});
+    }
+}
+
+async function getProfilData(cardId, res) {
+    try {
+        const result = await pool.execute(`SELECT u.first_name,
+                                                  u.last_name,
+                                                  p.name     AS parish_name,
+                                                  p.location AS parish_location,
+                                                  a.email,
+                                                  a.user_function,
+                                                  a.login
+                                           FROM auth a
+                                                    JOIN users u ON a.card_id = u.card_id
+                                                    JOIN parishes p ON u.id_parish = p.id_parish
+                                           WHERE a.card_id = ?`, [cardId]);
+   console.log(result);
+    } catch (error) {
+        console.error("Błąd pobierania danych o profilu", error);
+        return res.status(500).json({message: "Błąd serwera"});
+    }
 }
 
 module.exports = {
@@ -631,4 +653,5 @@ module.exports = {
     registerDeviceToken,
     logout,
     refreshTokenF,
+    getProfilData,
 };
