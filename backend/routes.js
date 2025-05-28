@@ -14,6 +14,9 @@ const {
   updateEmail,
   verificationCode,
   newPassword,
+  registerDeviceToken,
+  logout,
+  refreshTokenF,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
@@ -117,17 +120,12 @@ router.post("/data", async (req, res) => {
   }
 });
 router.post("/login", async (req, res) => {
-  const { login, password } = req.body;
+  const { login, password, appType } = req.body;
 
   if (!login || !password) {
     return res.status(400).json({ message: "Brak loginu lub hasła" });
   }
-  const result = await authorization(login, password);
-  console.log(result);
-  return res.status(result.status).json({
-    message: result.message,
-    token: result.token || null,
-  });
+  await authorization(login, password, appType, res);
 });
 router.post("/send-verification-code", authenticateToken, async (req, res) => {
   const userId = req.user.id;
@@ -155,5 +153,25 @@ router.post("/new-password", authenticateToken, async (req, res) => {
     return res.status(400).json({ success: false, message: "Brak hasła" });
   }
   await newPassword(userId, password, res);
+});
+router.post("/device/register", authenticateToken, async (req, res) => {
+  const { device_token, platform, app_version } = req.body;
+  if (!device_token || !platform) {
+    return res.status(400).json({ error: "Brak wymaganych danych" });
+  }
+  const cardId = req.user.card_id;
+  await registerDeviceToken(cardId, device_token, platform, app_version, res);
+});
+router.post("/logout", async (req, res) => {
+  const { refreshToken, appType } = req.body;
+  await logout(refreshToken, appType, res);
+});
+router.post("/refresh-token", async (req, res) => {
+  const { refreshToken, appType } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Brak refresh tokena" });
+  }
+  console.log("wystawiamy nowy token jwt");
+  await refreshTokenF(refreshToken, appType, res);
 });
 module.exports = router;
