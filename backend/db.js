@@ -4,6 +4,7 @@ const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 require('dotenv').config();
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -447,13 +448,19 @@ async function authorization(login, password) {
                 login_completed: user.first_login_completed,
             },
             process.env.JWT_SECRET,
-            {expiresIn: '24h'}
+            {expiresIn: '1h'}
         );
+        const refreshToken = crypto.randomBytes(64).toString('hex');
+        const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const expirestAt = new Date(Date.now()+14*24*60*60*1000);
+        await pool.execute('INSERT INTO refresh_tokens (card_id, token, expires_at) VALUES (?,?,?)', [user.card_id, hashedRefreshToken, expirestAt]);
+
         return {
             success: true,
             status: 200,
             message: 'Zalogowano pomyślnie',
-            token
+            token,
+            refreshToken
         };
     } catch (error) {
         console.error('Błąd logowania', error);
