@@ -17,6 +17,7 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { fetchAboutAppData } from "../utils/api";
 import Constants from "expo-constants";
+import { getProfilData } from "../utils/api";
 const { width, height } = Dimensions.get("window");
 
 export default function ProfilScreen({ navigation }) {
