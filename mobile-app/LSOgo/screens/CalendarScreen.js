@@ -31,10 +31,6 @@ export default function CalendarScreen({ route, navigation }) {
   useEffect(() => {
     const loadToday = async () => {
       try {
-        // const token = await AsyncStorage.getItem("userToken");
-        // const loggedIn = await AsyncStorage.getItem("isLoggedIn");
-        // console.log(token);
-        // console.log(loggedIn);
         const today = await fetchTodayLiturgicalData();
         const week = await fetchWeekLiturgicalData();
         setTodayData(today);

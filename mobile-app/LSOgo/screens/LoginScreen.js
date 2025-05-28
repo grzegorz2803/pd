@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -18,12 +18,24 @@ import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
 import BottomNavGuest from "../components/BottomNavGuest";
 import { handleLogin } from "../utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const rememberMe = false;
 export default function LoginScreen({ navigation }) {
   const { loggedIn, setLoggedIn } = useContext(AuthContext);
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      const savedLogin = await AsyncStorage.getItem("Login");
+      const savedPassword = await AsyncStorage.getItem("Password");
+      const savedRememberMe = await AsyncStorage.getItem("RememberMe");
+      if (savedLogin) setLogin(savedLogin);
+      if (savedPassword) setPassword(savedPassword);
+      if (savedRememberMe) setRememberMe(JSON.parse(savedRememberMe));
+    };
+    loadSavedCredentials();
+  }, []);
   return (
     <ImageBackground
       source={require("../assets/background.png")}

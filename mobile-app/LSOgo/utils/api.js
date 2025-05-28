@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
 
@@ -63,6 +64,7 @@ export const handleLogin = async (
       body: JSON.stringify({
         login: login,
         password: password,
+        appType: "mobile",
       }),
     });
     if (response.status === 401) {
@@ -70,15 +72,30 @@ export const handleLogin = async (
     }
     const data = await response.json();
     const token = data.token;
+    const refreshToken = data.refreshToken;
     const decoded = jwtDecode(token);
-    console.log(decoded);
+    const expirationTimestamp = decoded.exp; // czas wygaśnięcia w sekundach
+
+    // Konwersja do obiektu Date i sformatowany zapis
+    const expirationDate = new Date(expirationTimestamp * 1000);
+    console.log("Token wygasa:", expirationDate.toLocaleString());
+    if (rememberMe) {
+      await AsyncStorage.setItem("Login", login);
+      await AsyncStorage.setItem("Password", password);
+      await AsyncStorage.setItem("RememberMe", JSON.stringify(rememberMe));
+    } else {
+      await AsyncStorage.removeItem("Login");
+      await AsyncStorage.removeItem("Password");
+      await AsyncStorage.removeItem("RememberMe");
+    }
+    await AsyncStorage.setItem("userToken", token);
+    await AsyncStorage.setItem("refreshToken", refreshToken);
+
     if (decoded.login_completed === 1) {
       await AsyncStorage.setItem("isLoggedIn", "true");
-      await AsyncStorage.setItem("userToken", token);
       setLoggedIn(true);
       navigation.replace("Calendar");
     } else {
-      await AsyncStorage.setItem("userToken", token);
       setLoggedIn(false);
       navigation.replace("FirstLogin");
     }
@@ -89,58 +106,60 @@ export const handleLogin = async (
 
 export const sendEmail = async (email) => {
   try {
-    const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/send-verification-code`, {
+    const response = await fetchWithAuth(`${BASE_URL}/send-verification-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
       },
       body: JSON.stringify({ email }),
     });
+    const data = await response.json();
     if (!response.ok) {
-      return await response.json();
+      console.warn("Błąd wysyłania e-maila", data);
     }
-    return await response.json();
+    return data;
   } catch (error) {
     console.error("Błąd", error);
   }
 };
 export const verifyCode = async (code) => {
   try {
-    const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/verify-code`, {
+    const response = await fetchWithAuth(`${BASE_URL}/verify-code`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
       },
       body: JSON.stringify({ code }),
     });
+
+    const data = await response.json();
+
     if (!response.ok) {
-      return await response.json();
+      console.warn("Błąd weryfikacji kodu:", data);
     }
-    return await response.json();
+
+    return data;
   } catch (error) {
     console.error("Błąd", error);
   }
 };
 export const newPassword = async (password) => {
   try {
-    console.log(password);
-    const jwt = await AsyncStorage.getItem("userToken");
-    const response = await fetch(`${BASE_URL}/new-password`, {
+    const response = await fetchWithAuth(`${BASE_URL}/new-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
       },
       body: JSON.stringify({ password }),
     });
+
+    const data = await response.json();
+
     if (!response.ok) {
-      return await response.json();
+      console.warn("Błąd zmiany hasła:", data);
     }
-    return await response.json();
+
+    return data;
   } catch (error) {
     console.error("Błąd", error);
   }
@@ -158,4 +177,114 @@ export const validatePassword = (password) => {
   return regex.test(password);
 };
 
-export const registerDeviceToken = async () => {};
+export const registerDeviceToken = async () => {
+  try {
+    if (Platform.OS !== "android" || !Device.isDevice) {
+      console.warn("Push notification wymagają fizycznego urządzenia");
+      return;
+    }
+
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (finalStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.warn("Brak zgody na powiadomienia push");
+      return;
+    }
+
+    const tokenResponse = await Notifications.getExpoPushTokenAsync();
+    const deviceToken = tokenResponse.data;
+    console.log("Token urządzenia", deviceToken);
+
+    // Sprawdź czy użytkownik jest zalogowany (czy istnieje JWT)
+    const jwt = await AsyncStorage.getItem("userToken");
+    if (!jwt) {
+      console.warn("Brak tokena JWT – użytkownik nie jest zalogowany");
+      return;
+    }
+
+    // Rejestracja tokenu urządzenia z fetchWithAuth
+    const response = await fetchWithAuth(`${BASE_URL}/device/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        device_token: deviceToken,
+        platform: Platform.OS,
+        app_version: Constants.expoConfig?.version || "unknown",
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Błąd rejestracji tokenu:", response.status, err);
+    } else {
+      console.log("Token urządzenia zarejestrowany pomyślnie");
+    }
+  } catch (error) {
+    console.error("Błąd wysyłania tokenu urządzenia", error);
+  }
+};
+export const removeRefreshToken = async (refreshToken) => {
+  try {
+    const response = await fetch(`${BASE_URL}/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken: refreshToken,
+        appType: "mobile",
+      }),
+    });
+    return response;
+  } catch (error) {
+    console.error("Błąd wysłania refreshtoken na serwer", error);
+  }
+};
+export const fetchWithAuth = async (url, options = {}) => {
+  let token = await AsyncStorage.getItem("userToken");
+  let response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (response.status === 401) {
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+    const refreshRes = await fetch(`${BASE_URL}/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken: refreshToken,
+        appType: "mobile",
+      }),
+    });
+    if (refreshRes.ok) {
+      const data = await refreshRes.json();
+      const newToken = data.token;
+      await AsyncStorage.setItem("userToken", newToken);
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${newToken}`,
+        },
+      });
+    } else {
+      await AsyncStorage.clear();
+      throw new Error("Sesja wygasła. Zaloguj się ponownie");
+    }
+  }
+  return response;
+};

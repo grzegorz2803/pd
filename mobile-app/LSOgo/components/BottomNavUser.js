@@ -17,7 +17,7 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("About")}
+        onPress={() => navigation.navigate("Profil")}
       >
         <Image source={require("../assets/about.png")} style={styles.navIcon} />
         <Text style={styles.navText}>Profil</Text>
@@ -25,8 +25,12 @@ export default function BottomNavGuest({ navigation }) {
       <TouchableOpacity
         style={styles.navItem}
         onPress={async () => {
-          await logout();
-          navigation.replace("Login");
+          const result = await logout();
+          if (!result) {
+            return;
+          } else {
+            navigation.replace("Login");
+          }
         }}
       >
         <Image source={require("../assets/login.png")} style={styles.navIcon} />

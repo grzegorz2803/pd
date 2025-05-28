@@ -10,6 +10,7 @@ import { useFonts } from "expo-font";
 import AppLoading from "expo-app-loading";
 import { AuthProvider } from "./context/AuthContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ProfilScreen from "./screens/ProfilScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
             <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="FirstLogin" component={FirstLoginScreen} />
+            <Stack.Screen name="Profil" component={ProfilScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
