@@ -10,6 +10,7 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import BottomNavUser from "../components/BottomNavUser";
 import { RFValue } from "react-native-responsive-fontsize";
@@ -23,6 +24,7 @@ const { width, height } = Dimensions.get("window");
 export default function ProfilScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
   const [profilData, setProfilData] = useState(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const loadProfil = async () => {
       try {
@@ -30,10 +32,19 @@ export default function ProfilScreen({ navigation }) {
         setProfilData(profil);
       } catch (error) {
         console.error("Błąd pobierana danych ", error);
+      } finally {
+        setLoading(false);
       }
     };
     loadProfil();
   }, []);
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6e4b1f" />
+      </View>
+    );
+  }
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -48,23 +59,23 @@ export default function ProfilScreen({ navigation }) {
               style={styles.ornament}
             />
           </View>
-          <Text style={styles.title}>Jan Kowalski </Text>
-          <Text style={styles.parishe}>
-            Parafia pw. Przemienienia Pańskiego
+          <Text style={styles.title}>
+            {profilData[0].first_name} {profilData[0].last_name}
           </Text>
-          <Text style={styles.location}>Maków Podhalański</Text>
+          <Text style={styles.parishe}>{profilData[0].parish_name}</Text>
+          <Text style={styles.location}>{profilData[0].parish_location}</Text>
           <View style={styles.line} />
           <View style={styles.section}>
             <Text style={styles.label}>E-mail</Text>
-            <Text style={styles.value}>jan.kowalski@example.com</Text>
+            <Text style={styles.value}>{profilData[0].email}</Text>
           </View>
           <View style={styles.section}>
             <Text style={styles.label}>Stopień</Text>
-            <Text style={styles.value}>Ministrant</Text>
+            <Text style={styles.value}>{profilData[0].user_function}</Text>
           </View>
           <View style={styles.section}>
             <Text style={styles.label}>Login</Text>
-            <Text style={styles.value}>jan.kow</Text>
+            <Text style={styles.value}>{profilData[0].login}</Text>
           </View>
           <TouchableOpacity style={styles.button}>
             <Text style={styles.buttonText}>Zmiana hasła</Text>
