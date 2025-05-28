@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
 
       await AsyncStorage.removeItem("userToken");
       await AsyncStorage.removeItem("isLoggedIn");
+      await AsyncStorage.removeItem("Role");
       setLoggedIn(false);
       return true;
     } catch (error) {
