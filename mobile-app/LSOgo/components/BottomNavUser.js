@@ -25,8 +25,12 @@ export default function BottomNavGuest({ navigation }) {
       <TouchableOpacity
         style={styles.navItem}
         onPress={async () => {
-          await logout();
-          navigation.replace("Login");
+          const result = await logout();
+          if (!result) {
+            return;
+          } else {
+            navigation.replace("Login");
+          }
         }}
       >
         <Image source={require("../assets/login.png")} style={styles.navIcon} />

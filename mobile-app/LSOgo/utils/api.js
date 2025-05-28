@@ -64,6 +64,7 @@ export const handleLogin = async (
       body: JSON.stringify({
         login: login,
         password: password,
+        appType: "mobile",
       }),
     });
     if (response.status === 401) {
@@ -214,4 +215,61 @@ export const registerDeviceToken = async () => {
   } catch (error) {
     console.error("Błąd wysyłania tokenu urządzenia", error);
   }
+};
+export const removeRefreshToken = async (refreshToken) => {
+  try {
+    const response = await fetch(`${BASE_URL}/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken: refreshToken,
+        appType: "mobile",
+      }),
+    });
+    return response;
+  } catch (error) {
+    console.error("Błąd wysłania refreshtoken na serwer", error);
+  }
+};
+export const fetchWithAuth = async (url, options = {}) => {
+  let token = await AsyncStorage.getItem("userToken");
+  let response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (response.status === 401) {
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+    const refreshRes = await fetch(`${BASE_URL}/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (refreshRes.ok) {
+      const data = await refreshRes.json();
+      const newToken = data.token;
+      const newRefreshToken = data.refreshToken;
+      await AsyncStorage.setItem("userToken", newToken);
+      if (newRefreshToken) {
+        await AsyncStorage.setItem("refreshToken", newRefreshToken);
+      }
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${newToken}`,
+        },
+      });
+    } else {
+      await AsyncStorage.clear();
+      throw new Error("Sesja wygasła. Zaloguj się ponownie");
+    }
+  }
+  return response;
 };
