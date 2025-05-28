@@ -21,6 +21,18 @@ const { width, height } = Dimensions.get("window");
 
 export default function ProfilScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
+  const [profilData, setProfilData] = useState(null);
+  useEffect(() => {
+    const loadProfil = async () => {
+      try {
+        const profil = await getProfilData();
+        setProfilData(profil);
+      } catch (error) {
+        console.error("Błąd pobierana danych ", error);
+      }
+    };
+    loadProfil();
+  }, []);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -36,6 +48,10 @@ export default function ProfilScreen({ navigation }) {
             />
           </View>
           <Text style={styles.title}>Jan Kowalski </Text>
+          <Text style={styles.parishe}>
+            Parafia pw. Przemienienia Pańskiego
+          </Text>
+          <Text style={styles.location}>Maków Podhalański</Text>
           <View style={styles.line} />
           <View style={styles.section}>
             <Text style={styles.label}>E-mail</Text>
@@ -99,6 +115,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: RFValue(36),
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#4a2d0f",
+    marginBottom: RFValue(10),
+  },
+  parishe: {
+    fontSize: RFValue(16),
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#4a2d0f",
+    marginBottom: RFValue(10),
+  },
+  location: {
+    fontSize: RFValue(16),
     fontWeight: "bold",
     textAlign: "center",
     color: "#4a2d0f",

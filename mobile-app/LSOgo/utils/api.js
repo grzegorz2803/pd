@@ -75,7 +75,7 @@ export const handleLogin = async (
     const refreshToken = data.refreshToken;
     const decoded = jwtDecode(token);
     const expirationTimestamp = decoded.exp; // czas wygaśnięcia w sekundach
-
+    const role = decoded.role;
     // Konwersja do obiektu Date i sformatowany zapis
     const expirationDate = new Date(expirationTimestamp * 1000);
     console.log("Token wygasa:", expirationDate.toLocaleString());
@@ -93,6 +93,7 @@ export const handleLogin = async (
 
     if (decoded.login_completed === 1) {
       await AsyncStorage.setItem("isLoggedIn", "true");
+      await AsyncStorage.setItem("Role", role);
       setLoggedIn(true);
       navigation.replace("Calendar");
     } else {
@@ -230,6 +231,24 @@ export const registerDeviceToken = async () => {
     }
   } catch (error) {
     console.error("Błąd wysyłania tokenu urządzenia", error);
+  }
+};
+
+export const getProfilData = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-profil-data`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Błąd serwera");
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Błąd pobierania danych profil", error);
+    return null;
   }
 };
 export const removeRefreshToken = async (refreshToken) => {

@@ -14,6 +14,7 @@ import {
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavGuest from "../components/BottomNavGuest";
 import BottomNavUser from "../components/BottomNavUser";
+import BottomNavModerator from "../components/BottomNavModerator";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { fetchTodayLiturgicalData } from "../utils/api";
@@ -28,13 +29,16 @@ export default function CalendarScreen({ route, navigation }) {
   const [todayData, setTodayData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [weekData, setWeekData] = useState([]);
+  const [role, setRole] = useState(null);
   useEffect(() => {
     const loadToday = async () => {
       try {
         const today = await fetchTodayLiturgicalData();
         const week = await fetchWeekLiturgicalData();
+        const roleData = await AsyncStorage.getItem("Role");
         setTodayData(today);
         setWeekData(week);
+        setRole(roleData);
       } catch (error) {
         console.error("Błąd podczas pobierania danych", error);
       } finally {
@@ -61,7 +65,6 @@ export default function CalendarScreen({ route, navigation }) {
       })} ${date.getFullYear()}`,
     };
   });
-
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -194,7 +197,10 @@ export default function CalendarScreen({ route, navigation }) {
           })}
         </ScrollView>
       </SafeAreaView>
-      {loggedIn && <BottomNavUser navigation={navigation} />}
+      {loggedIn && role === "user" && <BottomNavUser navigation={navigation} />}
+      {loggedIn && role === "moderator" && (
+        <BottomNavModerator navigation={navigation} />
+      )}
       {!loggedIn && <BottomNavGuest navigation={navigation} />}
     </ImageBackground>
   );
