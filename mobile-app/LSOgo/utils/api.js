@@ -71,23 +71,25 @@ export const handleLogin = async (
     }
     const data = await response.json();
     const token = data.token;
+    const refreshToken = data.refreshToken;
     const decoded = jwtDecode(token);
+    if (rememberMe) {
+      await AsyncStorage.setItem("Login", login);
+      await AsyncStorage.setItem("Password", password);
+      await AsyncStorage.setItem("RememberMe", JSON.stringify(rememberMe));
+    } else {
+      await AsyncStorage.removeItem("Login");
+      await AsyncStorage.removeItem("Password");
+      await AsyncStorage.removeItem("RememberMe");
+    }
+    await AsyncStorage.setItem("userToken", token);
+    await AsyncStorage.setItem("refreshToken", refreshToken);
+
     if (decoded.login_completed === 1) {
-      if (rememberMe) {
-        await AsyncStorage.setItem("Login", login);
-        await AsyncStorage.setItem("Password", password);
-        await AsyncStorage.setItem("RememberMe", JSON.stringify(rememberMe));
-      } else {
-        await AsyncStorage.removeItem("Login");
-        await AsyncStorage.removeItem("Password");
-        await AsyncStorage.removeItem("RememberMe");
-      }
       await AsyncStorage.setItem("isLoggedIn", "true");
-      await AsyncStorage.setItem("userToken", token);
       setLoggedIn(true);
       navigation.replace("Calendar");
     } else {
-      await AsyncStorage.setItem("userToken", token);
       setLoggedIn(false);
       navigation.replace("FirstLogin");
     }
