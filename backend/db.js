@@ -448,7 +448,7 @@ async function authorization(login, password,appType, res) {
                 login_completed: user.first_login_completed,
             },
             process.env.JWT_SECRET,
-            {expiresIn: '1h'}
+            {expiresIn: '1m'}
         );
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
@@ -568,6 +568,50 @@ try{
     res.status(500).json({error: "Błąd serwera podczas usunięcia tokenu"});
 }
 }
+async function refreshTokenF(refreshToken,appType, res){
+try{
+    const hashedToken = crypto.createHash("sha256").update(refreshToken).digest("hex");
+
+    const [rows] = await pool.execute("SELECT card_id, expires_at FROM refresh_tokens WHERE token=? AND appType=?", [hashedToken, appType]);
+    if(rows[0]===undefined){
+        return res.status(403).json({message: "Nieprawidłowy lub nieważny token"});
+    }
+    const tokenEntry = rows[0];
+    const now = new Date();
+
+    if(new Date(tokenEntry.expires_at)<now){
+        return res.status(403).json({message: "Token wygasł"});
+    }
+    const cardId = tokenEntry.card_id;
+    const [userRows] = await pool.execute(
+        'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE card_id=?', [cardId]
+    );
+    const user = userRows[0];
+    if(!user){
+        return  res.status(404).json({message: "Użytkownik nie istnieje "});
+
+    }
+    const newAccessToken = jwt.sign(
+        {
+            id: user.id_auth,
+            card_id: user.card_id,
+            login: user.login,
+            email: user.email,
+            role: user.role,
+            function: user.user_function,
+            login_completed: user.first_login_completed,
+        },
+        process.env.JWT_SECRET,
+        {expiresIn: '1h'}
+    );
+    return res.json({
+        token: newAccessToken,
+    });
+}catch (error){
+    console.error("Błąd odświeżania tokena:",error);
+    return res.status(500).json({message: "Błąd serwera"});
+}
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -586,4 +630,5 @@ module.exports = {
     newPassword,
     registerDeviceToken,
     logout,
+    refreshTokenF,
 };

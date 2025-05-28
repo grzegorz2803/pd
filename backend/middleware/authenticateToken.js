@@ -9,7 +9,7 @@ console.log(token);
         return res.status(401).json({success: false, message: 'Brak tokena JWT'});
     }
     jwt.verify(token, process.env.JWT_SECRET, (err, user)=>{
-        if(err) return res.status(403).json({success: false, message: 'Token nieważny'});
+        if(err) return res.status(401).json({success: false, message: 'Token nieważny'});
         req.user = user;
         next();
     });

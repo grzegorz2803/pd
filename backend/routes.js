@@ -16,6 +16,7 @@ const {
     newPassword,
     registerDeviceToken,
     logout,
+    refreshTokenF,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -156,5 +157,13 @@ await registerDeviceToken(cardId, device_token, platform, app_version, res);
 router.post("/logout",async (req,res)=>{
     const {refreshToken, appType} = req.body;
     await logout(refreshToken,appType,res);
+})
+router.post("/refresh-token", async (req, res)=>{
+    const {refreshToken, appType} = req.body;
+    if(!refreshToken){
+        return res.status(400).json({message: "Brak refresh tokena"});
+    }
+    console.log("wystawiamy nowy token jwt");
+    await  refreshTokenF(refreshToken, appType,res);
 })
 module.exports = router;
