@@ -17,6 +17,7 @@ const {
   registerDeviceToken,
   logout,
   refreshTokenF,
+  getProfilData,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
@@ -173,5 +174,9 @@ router.post("/refresh-token", async (req, res) => {
   }
   console.log("wystawiamy nowy token jwt");
   await refreshTokenF(refreshToken, appType, res);
+});
+router.post("/get-profil-data", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  await getProfilData(cardId, res);
 });
 module.exports = router;

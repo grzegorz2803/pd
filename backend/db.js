@@ -494,7 +494,7 @@ async function authorization(login, password, appType, res) {
         login_completed: user.first_login_completed,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "1h" }
     );
     const refreshToken = crypto.randomBytes(64).toString("hex");
     const hashedRefreshToken = crypto
@@ -637,7 +637,7 @@ async function registerDeviceToken(
     await pool.execute(
       `INSERT INTO device_tokens (card_id, device_token, platform, app_version, created_at)
                             VALUES (?, ?, ?, ?, NOW()) ON DUPLICATE KEY
-                            UPDATE platform=?, app_version=?, created_at=NOW()`,
+                UPDATE platform=?, app_version=?, created_at=NOW()`,
       [cardId, device_token, platform, app_version, platform, app_version]
     );
     res.status(200).json({ message: "Token zapisany pomyślnie" });
@@ -646,6 +646,7 @@ async function registerDeviceToken(
     res.status(500).json({ error: "Błąd serwera podczas zapisu tokenu" });
   }
 }
+
 async function logout(refreshToken, appType, res) {
   const hashedRefreshToken = crypto
     .createHash("sha256")
@@ -662,6 +663,7 @@ async function logout(refreshToken, appType, res) {
     res.status(500).json({ error: "Błąd serwera podczas usunięcia tokenu" });
   }
 }
+
 async function refreshTokenF(refreshToken, appType, res) {
   try {
     const hashedToken = crypto
@@ -715,6 +717,32 @@ async function refreshTokenF(refreshToken, appType, res) {
   }
 }
 
+async function getProfilData(cardId, res) {
+  try {
+    const result = await pool.execute(
+      `SELECT u.first_name,
+                                                  u.last_name,
+                                                  p.name     AS parish_name,
+                                                  p.location AS parish_location,
+                                                  a.email,
+                                                  a.user_function,
+                                                  a.login
+                                           FROM auth a
+                                                    JOIN users u ON a.card_id = u.card_id
+                                                    JOIN parishes p ON u.id_parish = p.id_parish
+                                           WHERE a.card_id = ?`,
+      [cardId]
+    );
+    if (result[0] === undefined) {
+      return { message: "Błąd pobierania profilu" };
+    }
+    return res.json(result[0]);
+  } catch (error) {
+    console.error("Błąd pobierania danych o profilu", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+
 module.exports = {
   getUserByCardIdAndIdPar,
   getServicesByTimeStamp,
@@ -733,4 +761,5 @@ module.exports = {
   registerDeviceToken,
   logout,
   refreshTokenF,
+  getProfilData,
 };
