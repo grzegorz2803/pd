@@ -448,7 +448,7 @@ async function authorization(login, password, appType, res) {
                 login_completed: user.first_login_completed,
             },
             process.env.JWT_SECRET,
-            {expiresIn: '1m'}
+            {expiresIn: '1h'}
         );
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
