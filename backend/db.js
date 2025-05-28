@@ -423,7 +423,7 @@ async function getAboutApp(versionApp) {
     }
 }
 
-async function authorization(login, password) {
+async function authorization(login, password,appType, res) {
     try {
         const [rows] = await pool.execute(
             'SELECT id_auth, card_id, login, password_hash,email,role,user_function, first_login_completed FROM auth WHERE login =?', [login]
@@ -453,15 +453,16 @@ async function authorization(login, password) {
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
         const expirestAt = new Date(Date.now()+14*24*60*60*1000);
-        await pool.execute('INSERT INTO refresh_tokens (card_id, token, expires_at) VALUES (?,?,?)', [user.card_id, hashedRefreshToken, expirestAt]);
+        await pool.execute('DELETE FROM refresh_tokens WHERE card_id = ? AND appType=?', [user.card_id, appType]);
+        await pool.execute('INSERT INTO refresh_tokens (card_id, token, expires_at, appType) VALUES (?,?,?,?)', [user.card_id, hashedRefreshToken, expirestAt,appType]);
 
-        return {
+        return res.status(200).json({
             success: true,
             status: 200,
             message: 'Zalogowano pomyślnie',
             token,
             refreshToken
-        };
+        });
     } catch (error) {
         console.error('Błąd logowania', error);
         return {success: false, status: 500, message: 'Błąd serwera'};
@@ -556,6 +557,17 @@ async function registerDeviceToken(cardId, device_token, platform, app_version, 
         res.status(500).json({error: "Błąd serwera podczas zapisu tokenu"});
     }
 }
+async function logout(refreshToken, appType,res){
+    const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+try{
+
+    await pool.execute('DELETE FROM refresh_tokens WHERE token =? AND appType =? ',[hashedRefreshToken, appType]);
+    res.status(200).json({message: "Token zopisany poprawnie"});
+}catch (error){
+    console.error("Błąd usunięcia tokenu:", error);
+    res.status(500).json({error: "Błąd serwera podczas usunięcia tokenu"});
+}
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -572,5 +584,6 @@ module.exports = {
     updateEmail,
     verificationCode,
     newPassword,
-    registerDeviceToken
+    registerDeviceToken,
+    logout,
 };

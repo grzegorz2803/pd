@@ -15,6 +15,7 @@ const {
     verificationCode,
     newPassword,
     registerDeviceToken,
+    logout,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -111,17 +112,12 @@ router.post("/data", async (req, res) => {
 
 });
 router.post("/login", async (req,res  ) => {
-  const {login, password} = req.body;
+  const {login, password, appType} = req.body;
 
   if(!login || !password){
       return res.status(400).json({message: 'Brak loginu lub hasła'});
   }
- const result =  await  authorization(login,password);
-  console.log(result);
-    return res.status(result.status).json({
-        message: result.message,
-        token: result.token || null,
-    });
+  await  authorization(login,password,appType, res);
 });
 router.post("/send-verification-code", authenticateToken,  async (req,res) => {
 const userId = req.user.id;
@@ -156,5 +152,9 @@ if(!device_token || !platform){
 }
 const cardId = req.user.card_id;
 await registerDeviceToken(cardId, device_token, platform, app_version, res);
+})
+router.post("/logout",async (req,res)=>{
+    const {refreshToken, appType} = req.body;
+    await logout(refreshToken,appType,res);
 })
 module.exports = router;
