@@ -430,12 +430,12 @@ async function authorization(login, password, appType, res) {
         );
 
         if (rows[0] === undefined) {
-            return {success: false, status: 401, message: 'Nieprawidłowy login'};
+            return res.status(401).json({success: false, status: 401, message: 'Nieprawidłowy login'});
         }
         const user = rows[0];
         const match = await bcrypt.compare(password, user.password_hash);
         if (!match) {
-            return {success: false, status: 401, message: 'Nieprawidłowe hasło'};
+            return res.status(401).json({success: false, status: 401, message: 'Nieprawidłowe hasło'});
         }
         const token = jwt.sign(
             {
