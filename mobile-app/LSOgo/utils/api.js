@@ -67,12 +67,12 @@ export const handleLogin = async (
         appType: "mobile",
       }),
     });
-    console.log("Dzia");
-    console.log(response.status);
-    if (!response.ok) {
-      Alert.alert("Błąd", "Niepoprawny login lub hasło");
+    if (response.status === 401) {
+      Alert.alert("Błąd:", "Niepoprawny login lub hasło");
+      return;
     }
     const data = await response.json();
+
     const token = data.token;
     const refreshToken = data.refreshToken;
     const decoded = jwtDecode(token);
