@@ -638,7 +638,8 @@ async function getProfilData(cardId, res) {
         const [dutyRows] = await pool.execute(`SELECT day_of_week, time
                                                FROM lso_schedules
                                                WHERE user_card_id = ? AND week_number = ?
-                                               ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), time `, [cardId, currentWeek]);
+                                               ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela')
+                                                       , time `, [cardId, currentWeek]);
         return res.json({
             ...result[0],
             duties: dutyRows,
