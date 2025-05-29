@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useContext } from "react";
@@ -19,9 +18,53 @@ export default function BottomNavGuest({ navigation }) {
         style={styles.navItem}
         onPress={() => navigation.navigate("Profil")}
       >
-        <Image source={require("../assets/about.png")} style={styles.navIcon} />
+        <Image
+          source={require("../assets/profil.png")}
+          style={styles.navIcon}
+        />
         <Text style={styles.navText}>Profil</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Profil")}
+      >
+        <Image
+          source={require("../assets/ranking.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Ranking</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Profil")}
+      >
+        <Image
+          source={require("../assets/history.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Historia</Text>
+      </TouchableOpacity>
+
+      {/* <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Profil")}
+      >
+        <Image
+          source={require("../assets/powiadomienia.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Powiadomienia</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Profil")}
+      >
+        <Image
+          source={require("../assets/contact.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Kontakt</Text>
+      </TouchableOpacity> */}
       <TouchableOpacity
         style={styles.navItem}
         onPress={async () => {
@@ -33,7 +76,10 @@ export default function BottomNavGuest({ navigation }) {
           }
         }}
       >
-        <Image source={require("../assets/login.png")} style={styles.navIcon} />
+        <Image
+          source={require("../assets/logout.png")}
+          style={styles.navIcon}
+        />
         <Text style={styles.navText}>Log out</Text>
       </TouchableOpacity>
     </View>

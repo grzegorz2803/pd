@@ -26,7 +26,10 @@ export default function BottomNavGuest({ navigation }) {
           }
         }}
       >
-        <Image source={require("../assets/login.png")} style={styles.navIcon} />
+        <Image
+          source={require("../assets/logout.png")}
+          style={styles.navIcon}
+        />
         <Text style={styles.navText}>Log out</Text>
       </TouchableOpacity>
     </View>
