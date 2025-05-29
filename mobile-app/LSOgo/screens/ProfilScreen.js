@@ -83,26 +83,26 @@ export default function ProfilScreen({ navigation }) {
           <View style={styles.line} />
           <View style={styles.section}>
             <Text style={styles.labelHarm}>Harmonogram dyżurów</Text>
-            <View style={styles.massBox}>
-              <Image
-                source={require("../assets/kielich.png")}
-                style={[styles.cross]}
-              />
-              <View style={styles.massTextContainer}>
-                <Text style={styles.massTitle}>Dzień powszedni</Text>
-                <Text style={styles.massTime}>Piątek godz. 18:00</Text>
-              </View>
-            </View>
-            <View style={styles.massBox}>
-              <Image
-                source={require("../assets/kielich.png")}
-                style={[styles.cross]}
-              />
-              <View style={styles.massTextContainer}>
-                <Text style={styles.massTitle}>Niedziela</Text>
-                <Text style={styles.massTime}>Niedziela godz. 9:00</Text>
-              </View>
-            </View>
+            <Text style={styles.currentWeek}>
+              Tydzień roku: {profilData.week_number}
+            </Text>
+            {profilData.duties.map((item) => {
+              const key = `${item.day_of_week}-${item.time}`;
+              return (
+                <View key={key} style={styles.massBox}>
+                  <Image
+                    source={require("../assets/kielich.png")}
+                    style={[styles.cross]}
+                  />
+                  <View style={styles.massTextContainer}>
+                    <Text style={styles.massTitle}>{item.day_of_week}</Text>
+                    <Text style={styles.massTime}>
+                      {item.day_of_week} godz. {item.time.slice(0, 5)}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -161,6 +161,12 @@ const styles = StyleSheet.create({
     color: "#4a2d0f",
     marginBottom: RFValue(15),
     textAlign: "center",
+  },
+  currentWeek: {
+    fontSize: RFValue(16),
+    fontWeight: "bold",
+    color: "#4a2d0f",
+    marginBottom: RFValue(15),
   },
   value: {
     fontSize: RFValue(18),
