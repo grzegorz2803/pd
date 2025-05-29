@@ -11,6 +11,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import BottomNavUser from "../components/BottomNavUser";
 import { RFValue } from "react-native-responsive-fontsize";
@@ -19,12 +21,17 @@ import { AuthContext } from "../context/AuthContext";
 import { fetchAboutAppData } from "../utils/api";
 import Constants from "expo-constants";
 import { getProfilData } from "../utils/api";
+import { validatePassword } from "../utils/api";
+import { newPassword } from "../utils/api";
 const { width, height } = Dimensions.get("window");
 
 export default function ProfilScreen({ navigation }) {
-  const { loggedIn } = useContext(AuthContext);
+  const { loggedIn, logout } = useContext(AuthContext);
   const [profilData, setProfilData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setNewPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
   useEffect(() => {
     const loadProfil = async () => {
       try {
@@ -77,7 +84,10 @@ export default function ProfilScreen({ navigation }) {
             <Text style={styles.label}>Login</Text>
             <Text style={styles.value}>{profilData[0].login}</Text>
           </View>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => setShowPasswordModal(true)}
+          >
             <Text style={styles.buttonText}>Zmiana hasła</Text>
           </TouchableOpacity>
           <View style={styles.line} />
@@ -104,6 +114,76 @@ export default function ProfilScreen({ navigation }) {
               );
             })}
           </View>
+          <Modal
+            visible={showPasswordModal}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowPasswordModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Nowe hasło</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nowe hasło"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setNewPassword}
+                />
+                {password !== "" && !validatePassword(password) && (
+                  <Text
+                    style={{ color: "red", marginTop: -10, marginBottom: 5 }}
+                  >
+                    Hasło musi zawierać 8 znaków w tym: 1 cyfra, 1 duza litera,
+                    1 zank specjalny
+                  </Text>
+                )}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Powtórz hasło"
+                  secureTextEntry
+                  value={repeatPassword}
+                  onChangeText={setRepeatPassword}
+                />
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={async () => {
+                    if (password !== repeatPassword) {
+                      alert("Hasła nie są takie same");
+                      return;
+                    }
+                    try {
+                      const result = await newPassword(password);
+
+                      if (result?.success) {
+                        setShowPasswordModal(false);
+                        setNewPassword("");
+                        setRepeatPassword("");
+                        await logout();
+                        navigation.replace("Login");
+                      } else {
+                        Alert.alert(
+                          "Błąd",
+                          result?.message || "Nie udało się zmienić hasła"
+                        );
+                      }
+                    } catch (error) {
+                      console.error("Błąd zmiany hasła:", error);
+                      Alert.alert("Błąd", "Wystąpił błąd serwera");
+                    }
+                  }}
+                >
+                  <Text style={styles.saveButtonText}>Zapisz</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowPasswordModal(false)}
+                  style={styles.cancelButton}
+                >
+                  <Text style={styles.cancelButtonText}>Anuluj</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </ScrollView>
       </SafeAreaView>
       {loggedIn && <BottomNavUser navigation={navigation} />}
@@ -217,5 +297,49 @@ const styles = StyleSheet.create({
   massTextContainer: {
     flexDirection: "column",
     justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "stretch",
+  },
+  modalTitle: {
+    fontSize: RFValue(18),
+    fontWeight: "bold",
+    marginBottom: RFValue(10),
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
+  saveButton: {
+    backgroundColor: "#4caf50",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  cancelButton: {
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#777",
+    fontSize: 14,
   },
 });
