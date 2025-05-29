@@ -631,8 +631,10 @@ async function getProfilData(cardId, res) {
         if (result[0] === undefined) {
             return {message: "Błąd pobierania profilu"};
         }
-        const [weekResult] = await pool.execute(`SELECT WEEK(NOW()) AS current_week`);
+        const [weekResult] = await pool.execute(`SELECT WEEKOFYEAR(NOW()) AS current_week`);
+
         const currentWeek = weekResult[0].current_week;
+        console.log(currentWeek);
         const [dutyRows] = await pool.execute(`SELECT day_of_week, time
                                                FROM lso_schedules
                                                WHERE user_card_id = ? AND week_number = ?
