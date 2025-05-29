@@ -628,10 +628,20 @@ async function getProfilData(cardId, res) {
                                                     JOIN users u ON a.card_id = u.card_id
                                                     JOIN parishes p ON u.id_parish = p.id_parish
                                            WHERE a.card_id = ?`, [cardId]);
-   if(result[0]===undefined){
-       return {message:"Błąd pobierania profilu"};
-   }
-   return res.json(result[0]);
+        if (result[0] === undefined) {
+            return {message: "Błąd pobierania profilu"};
+        }
+        const [weekResult] = await pool.execute(`SELECT WEEK(NOW()) AS current_week`);
+        const currentWeek = weekResult[0].current_week;
+        const [dutyRows] = await pool.execute(`SELECT day_of_week, time,
+                                               FROM lso_schedules
+                                               WHERE user_card_id = ? AND week_number = ?
+                                               ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), time `, [cardId, currentWeek]);
+        return res.json({
+            ...result[0],
+            duties: dutyRows,
+            week_number: currentWeek
+        });
     } catch (error) {
         console.error("Błąd pobierania danych o profilu", error);
         return res.status(500).json({message: "Błąd serwera"});
