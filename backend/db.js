@@ -633,7 +633,7 @@ async function getProfilData(cardId, res) {
         }
         const [weekResult] = await pool.execute(`SELECT WEEK(NOW()) AS current_week`);
         const currentWeek = weekResult[0].current_week;
-        const [dutyRows] = await pool.execute(`SELECT day_of_week, time,
+        const [dutyRows] = await pool.execute(`SELECT day_of_week, time
                                                FROM lso_schedules
                                                WHERE user_card_id = ? AND week_number = ?
                                                ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), time `, [cardId, currentWeek]);
