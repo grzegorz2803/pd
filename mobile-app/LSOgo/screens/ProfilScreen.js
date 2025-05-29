@@ -107,7 +107,7 @@ export default function ProfilScreen({ navigation }) {
                   <View style={styles.massTextContainer}>
                     <Text style={styles.massTitle}>{item.day_of_week}</Text>
                     <Text style={styles.massTime}>
-                      {item.day_of_week} godz. {item.time.slice(0, 5)}
+                      godz. {item.time.slice(0, 5)}
                     </Text>
                   </View>
                 </View>

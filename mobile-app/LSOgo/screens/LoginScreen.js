@@ -93,8 +93,14 @@ export default function LoginScreen({ navigation }) {
           </View>
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() =>
-              handleLogin(login, password, rememberMe, navigation, setLoggedIn)
+            onPress={async () =>
+              await handleLogin(
+                login,
+                password,
+                rememberMe,
+                navigation,
+                setLoggedIn
+              )
             }
           >
             <Text style={styles.loginText}>Zaloguj się</Text>
