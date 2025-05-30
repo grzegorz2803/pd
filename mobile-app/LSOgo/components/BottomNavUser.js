@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-
 export default function BottomNavGuest({ navigation }) {
   const { logout } = useContext(AuthContext);
   return (
@@ -26,7 +25,7 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Profil")}
+        onPress={() => navigation.navigate("Ranking")}
       >
         <Image
           source={require("../assets/ranking.png")}
@@ -36,7 +35,7 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Profil")}
+        onPress={() => navigation.navigate("History")}
       >
         <Image
           source={require("../assets/history.png")}
@@ -45,42 +44,14 @@ export default function BottomNavGuest({ navigation }) {
         <Text style={styles.navText}>Historia</Text>
       </TouchableOpacity>
 
-      {/* <TouchableOpacity
-        style={styles.navItem}
-        onPress={() => navigation.navigate("Profil")}
-      >
-        <Image
-          source={require("../assets/powiadomienia.png")}
-          style={styles.navIcon}
-        />
-        <Text style={styles.navText}>Powiadomienia</Text>
-      </TouchableOpacity>
+      {/*  */}
+      {/*  */}
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Profil")}
+        onPress={() => navigation.navigate("MoreUser")}
       >
-        <Image
-          source={require("../assets/contact.png")}
-          style={styles.navIcon}
-        />
-        <Text style={styles.navText}>Kontakt</Text>
-      </TouchableOpacity> */}
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={async () => {
-          const result = await logout();
-          if (!result) {
-            return;
-          } else {
-            navigation.replace("Login");
-          }
-        }}
-      >
-        <Image
-          source={require("../assets/logout.png")}
-          style={styles.navIcon}
-        />
-        <Text style={styles.navText}>Log out</Text>
+        <Image source={require("../assets/more.png")} style={styles.navIcon} />
+        <Text style={styles.navText}>Więcej</Text>
       </TouchableOpacity>
     </View>
   );

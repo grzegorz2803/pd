@@ -11,6 +11,7 @@ import AppLoading from "expo-app-loading";
 import { AuthProvider } from "./context/AuthContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ProfilScreen from "./screens/ProfilScreen";
+import MoreUserScreen from "./screens/MoreUserScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,7 @@ export default function App() {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="FirstLogin" component={FirstLoginScreen} />
             <Stack.Screen name="Profil" component={ProfilScreen} />
+            <Stack.Screen name="MoreUser" component={MoreUserScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
