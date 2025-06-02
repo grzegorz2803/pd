@@ -58,7 +58,7 @@ router.post("/data", async (req, res) => {
                 if (service !== null) {
                     const {name, time_service, points} = service;
                     const {card_id} = person;
-                    const serviceAdded = await addReading(card_id, timestamp, name, time_service, id_par);
+                    const serviceAdded = await addReading(card_id, timestamp, name, time_service,points, id_par);
                     if (serviceAdded) {
                         try {
                             await checkIfTableExists(id_par);
@@ -80,7 +80,7 @@ router.post("/data", async (req, res) => {
                         });
                     }
                 } else {
-                    const serviceAdded = await addOtherReading(card_id, timestamp, id_par);
+                    const serviceAdded = await addOtherReading(card_id, timestamp, 5,id_par);
                     if (serviceAdded) {
                         try {
                             await checkIfTableExists(id_par);

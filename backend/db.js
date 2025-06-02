@@ -135,16 +135,17 @@ async function getServicesByTimeStamp(timeStamp, parID) {
 
 }
 
-async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
+async function addReading(cardId, timeStamp, nameService, timeService,points, idPar) {
     const [date, time] = timeStamp.split(" ");
     const tableName = `${idPar}_readings`;
     const duplicate = await checkDuplicateReading(cardId, date, timeService, tableName, true);
+    console.log(points);
     //console.log(cardId, date, time, nameService, timeService, idPar, tableName );
     if (!duplicate) {
-        const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
-                       VALUES (?, ?, ?, ?, ?)`;
+        const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service, points)
+                       VALUES (?, ?, ?, ?, ?,?)`;
         try {
-            const [result] = await pool.execute(query, [cardId, date, time, nameService, timeService]);
+            const [result] = await pool.execute(query, [cardId, date, time, nameService, timeService,points]);
             return result.affectedRows === 1;
         } catch (error) {
             console.error("Błąd dodania odczytu", error);
@@ -155,15 +156,15 @@ async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
     }
 }
 
-async function addOtherReading(cardId, timeStamp, idPar) {
+async function addOtherReading(cardId, timeStamp,points, idPar) {
     const [date, time] = timeStamp.split(" ");
     const tableName = `${idPar}_readings`;
     const duplicate = await checkDuplicateReading(cardId, date, time, tableName);
     if (!duplicate) {
-        const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
-                       VALUES (?, ?, ?, 'Inne nabożeństwo', ?)`;
+        const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service,points)
+                       VALUES (?, ?, ?, 'Inne nabożeństwo', ?,?)`;
         try {
-            const [result] = await pool.execute(query, [cardId, date, time, time]);
+            const [result] = await pool.execute(query, [cardId, date, time, time,points]);
             if (result.affectedRows === 1) {
                 return {
                     name: "Inne nabożeństwo",
