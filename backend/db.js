@@ -740,7 +740,7 @@ async function getHistoryData(cardId,res){
         const parishID = rows[0].id_parish;
         const [rowsHistory] = await pool.execute(
             `SELECT
-    id AS readind_id,
+    id AS reading_id,
        DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
        DAYNAME(date_read) AS day_en,
        name_service AS name,
@@ -755,6 +755,7 @@ async function getHistoryData(cardId,res){
         if(rowsHistory[0]===undefined){
             return res.status(403).json({message: 'Brak historii do wyświetlenia'});
         }
+        console.log(rowsHistory[0]);
         const dayMap = {
             Monday: "Poniedziałek",
             Tuesday: "Wtorek",
