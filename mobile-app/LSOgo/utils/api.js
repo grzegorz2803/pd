@@ -287,7 +287,23 @@ export const getRankingData = async () => {
     return null;
   }
 };
-
+export const getHistoryData = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-history`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Błąd serwera");
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Błąd pobierania historii", error);
+    return null;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

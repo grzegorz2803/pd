@@ -16,46 +16,41 @@ import BottomNavUser from "../components/BottomNavUser";
 import { getRankingData } from "../utils/api";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
-const sampleData = [
-  {
-    date: "19.05.2025",
-    day: "Poniedziałek",
-    name: "Msza Święta w dni powszednie",
-    time: "08:00",
-    points: -3,
-  },
-  {
-    date: "22.05.2025",
-    day: "Czwartek",
-    name: "Nabożeństwo ku czci św. Rity",
-    time: "18:00",
-    points: 10,
-  },
-  {
-    date: "25.05.2025",
-    day: "Niedziela",
-    name: "Brak służby w niedzielę",
-    time: "17:00",
-    points: -4,
-  },
-  {
-    date: "29.05.2025",
-    day: "Czwartek",
-    name: "Inne nabożeństwo",
-    time: "17:00",
-    points: 5,
-  },
-  {
-    date: "31.05.2025",
-    day: "Sobota",
-    name: "Nabożeństwo Majowe",
-    time: "18:00",
-    points: 10,
-  },
-];
+import { getHistoryData } from "../utils/api";
 
 export default function HistoryScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
+  const [loading, setLoading] = useState(true);
+  const [historyData, setHistoryData] = useState(null);
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const history = await getHistoryData();
+        setHistoryData(history);
+      } catch (error) {
+        console.error("Błąd pobierana danych ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadHistory();
+  }, []);
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6e4b1f" />
+      </View>
+    );
+  }
+  if (!historyData) {
+    return (
+      <View style={styles.centered}>
+        <Text style={{ color: "#4a2d0f", fontSize: RFValue(18) }}>
+          Brak danych rankingowych do wyświetlenia.
+        </Text>
+      </View>
+    );
+  }
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -66,7 +61,7 @@ export default function HistoryScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.title}>Historia</Text>
 
-          {sampleData.map((entry, index) => (
+          {historyData.map((entry, index) => (
             <View key={index} style={styles.entryBox}>
               <View style={styles.rowBetween}>
                 <Text style={styles.dateDay}>
