@@ -132,13 +132,18 @@ export default function RankingScreen({ navigation }) {
           {/* Informacje o różnicy punktowej */}
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Zestawienie punktowe:</Text>
-            <Text style={styles.infoText}>
-              Strata do 1. miejsca: {currentData.strata_do_lidera} pkt
-            </Text>
-            <Text style={styles.infoText}>
-              Strata do {currentData.ranking - 1}. miejsca:{" "}
-              {currentData.strata_do_poprzedzajacego} pkt
-            </Text>
+            {currentData.ranking !== 1 && (
+              <>
+                <Text style={styles.infoText}>
+                  Strata do 1. miejsca: {currentData.strata_do_lidera} pkt
+                </Text>
+
+                <Text style={styles.infoText}>
+                  Strata do {currentData.ranking - 1}. miejsca:{" "}
+                  {currentData.strata_do_poprzedzajacego} pkt
+                </Text>
+              </>
+            )}
             <Text style={styles.infoText}>
               Przewaga nad {currentData.ranking + 1}. miejscem:{" "}
               {currentData.przewaga_nad_nastepnym} pkt
