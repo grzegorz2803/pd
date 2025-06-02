@@ -1,9 +1,7 @@
-import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-
 export default function BottomNavGuest({ navigation }) {
   const { logout } = useContext(AuthContext);
   return (
@@ -19,22 +17,41 @@ export default function BottomNavGuest({ navigation }) {
         style={styles.navItem}
         onPress={() => navigation.navigate("Profil")}
       >
-        <Image source={require("../assets/about.png")} style={styles.navIcon} />
+        <Image
+          source={require("../assets/profil.png")}
+          style={styles.navIcon}
+        />
         <Text style={styles.navText}>Profil</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={async () => {
-          const result = await logout();
-          if (!result) {
-            return;
-          } else {
-            navigation.replace("Login");
-          }
-        }}
+        onPress={() => navigation.navigate("Ranking")}
       >
-        <Image source={require("../assets/login.png")} style={styles.navIcon} />
-        <Text style={styles.navText}>Log out</Text>
+        <Image
+          source={require("../assets/ranking.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Ranking</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("History")}
+      >
+        <Image
+          source={require("../assets/history.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Historia</Text>
+      </TouchableOpacity>
+
+      {/*  */}
+      {/*  */}
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("MoreUser")}
+      >
+        <Image source={require("../assets/more.png")} style={styles.navIcon} />
+        <Text style={styles.navText}>Więcej</Text>
       </TouchableOpacity>
     </View>
   );
