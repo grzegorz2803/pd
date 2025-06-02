@@ -18,6 +18,7 @@ const {
   logout,
   refreshTokenF,
   getProfilData,
+  getRankingData,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
@@ -62,6 +63,7 @@ router.post("/data", async (req, res) => {
             timestamp,
             name,
             time_service,
+            points,
             id_par
           );
           if (serviceAdded) {
@@ -88,6 +90,7 @@ router.post("/data", async (req, res) => {
           const serviceAdded = await addOtherReading(
             card_id,
             timestamp,
+            5,
             id_par
           );
           if (serviceAdded) {
@@ -178,5 +181,10 @@ router.post("/refresh-token", async (req, res) => {
 router.post("/get-profil-data", authenticateToken, async (req, res) => {
   const cardId = req.user.card_id;
   await getProfilData(cardId, res);
+});
+router.post("/get-ranking", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+
+  await getRankingData(cardId, res);
 });
 module.exports = router;

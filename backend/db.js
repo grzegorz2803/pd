@@ -162,7 +162,14 @@ async function getServicesByTimeStamp(timeStamp, parID) {
   }
 }
 
-async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
+async function addReading(
+  cardId,
+  timeStamp,
+  nameService,
+  timeService,
+  points,
+  idPar
+) {
   const [date, time] = timeStamp.split(" ");
   const tableName = `${idPar}_readings`;
   const duplicate = await checkDuplicateReading(
@@ -172,10 +179,11 @@ async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
     tableName,
     true
   );
+  console.log(points);
   //console.log(cardId, date, time, nameService, timeService, idPar, tableName );
   if (!duplicate) {
-    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
-                       VALUES (?, ?, ?, ?, ?)`;
+    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service, points)
+                       VALUES (?, ?, ?, ?, ?, ?)`;
     try {
       const [result] = await pool.execute(query, [
         cardId,
@@ -183,6 +191,7 @@ async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
         time,
         nameService,
         timeService,
+        points,
       ]);
       return result.affectedRows === 1;
     } catch (error) {
@@ -194,15 +203,21 @@ async function addReading(cardId, timeStamp, nameService, timeService, idPar) {
   }
 }
 
-async function addOtherReading(cardId, timeStamp, idPar) {
+async function addOtherReading(cardId, timeStamp, points, idPar) {
   const [date, time] = timeStamp.split(" ");
   const tableName = `${idPar}_readings`;
   const duplicate = await checkDuplicateReading(cardId, date, time, tableName);
   if (!duplicate) {
-    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service)
-                       VALUES (?, ?, ?, 'Inne nabożeństwo', ?)`;
+    const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service, points)
+                       VALUES (?, ?, ?, 'Inne nabożeństwo', ?, ?)`;
     try {
-      const [result] = await pool.execute(query, [cardId, date, time, time]);
+      const [result] = await pool.execute(query, [
+        cardId,
+        date,
+        time,
+        time,
+        points,
+      ]);
       if (result.affectedRows === 1) {
         return {
           name: "Inne nabożeństwo",
@@ -476,12 +491,16 @@ async function authorization(login, password, appType, res) {
     );
 
     if (rows[0] === undefined) {
-      return { success: false, status: 401, message: "Nieprawidłowy login" };
+      return res
+        .status(401)
+        .json({ success: false, status: 401, message: "Nieprawidłowy login" });
     }
     const user = rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
-      return { success: false, status: 401, message: "Nieprawidłowe hasło" };
+      return res
+        .status(401)
+        .json({ success: false, status: 401, message: "Nieprawidłowe hasło" });
     }
     const token = jwt.sign(
       {
@@ -736,9 +755,111 @@ async function getProfilData(cardId, res) {
     if (result[0] === undefined) {
       return { message: "Błąd pobierania profilu" };
     }
-    return res.json(result[0]);
+    const [weekResult] = await pool.execute(
+      `SELECT WEEKOFYEAR(NOW()) AS current_week`
+    );
+
+    const currentWeek = weekResult[0].current_week;
+    console.log(currentWeek);
+    const [dutyRows] = await pool.execute(
+      `SELECT day_of_week, time
+                                               FROM lso_schedules
+                                               WHERE user_card_id = ? AND week_number = ?
+                                               ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela')
+                                                       , time `,
+      [cardId, currentWeek]
+    );
+    return res.json({
+      ...result[0],
+      duties: dutyRows,
+      week_number: currentWeek,
+    });
   } catch (error) {
     console.error("Błąd pobierania danych o profilu", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+async function getRankingData(cardId, res) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+    if (!rows[0]) {
+      return res.status(403).json({ message: "Brak danych o parafii" });
+    }
+    const parishID = rows[0].id_parish;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const tableYear = `${parishID}_${year}`.trim();
+    const tableMonth = `${parishID}_${month}_${year}`.trim();
+
+    async function fetchStatsFromTable(tableName) {
+      const [rows] = await pool.execute(
+        `
+                WITH ranked AS (
+                    SELECT
+                        card_id,
+                        points,
+                        points_meating,
+                        sum,
+                        ROW_NUMBER() OVER (ORDER BY sum DESC) AS position
+                    FROM \`${tableName}\`
+                )
+                SELECT
+                    r.card_id,
+                    r.points,
+                    r.points_meating,
+                    r.sum,
+                    r.position AS ranking,
+                    IFNULL((SELECT sum FROM ranked WHERE position = 1) - r.sum, 0) AS strata_do_lidera,
+                    IFNULL(r.sum - (SELECT sum FROM ranked WHERE position = r.position - 1), 0) AS strata_do_poprzedzajacego,
+                    IFNULL(r.sum - (SELECT sum FROM ranked WHERE position = r.position + 1), 0) AS przewaga_nad_nastepnym
+                FROM ranked r
+                WHERE r.card_id = ?
+            `,
+        [cardId]
+      );
+
+      if (!rows[0]) {
+        return {
+          card_id: cardId,
+          points: 0,
+          points_meating: 0,
+          sum: 0,
+          ranking: 0,
+          strata_do_lidera: 0,
+          strata_do_poprzedzajacego: 0,
+          przewaga_nad_nastepnym: 0,
+        };
+      }
+
+      const r = rows[0];
+      return {
+        card_id: r.card_id,
+        points: r.points ?? 0,
+        points_meating: r.points_meating ?? 0,
+        sum: r.sum ?? 0,
+        ranking: r.ranking ?? 0,
+        strata_do_lidera: r.strata_do_lidera ?? 0,
+        strata_do_poprzedzajacego: -r.strata_do_poprzedzajacego ?? 0,
+        przewaga_nad_nastepnym: r.przewaga_nad_nastepnym ?? 0,
+      };
+    }
+
+    const monthStats = await fetchStatsFromTable(tableMonth);
+    const yearStats = await fetchStatsFromTable(tableYear);
+
+    return res.status(200).json({
+      card_id: cardId,
+      parish: parishID,
+      month: monthStats,
+      year: yearStats,
+    });
+  } catch (error) {
+    console.error("Błąd pobierania danych rankingowych", error);
     return res.status(500).json({ message: "Błąd serwera" });
   }
 }
@@ -762,4 +883,5 @@ module.exports = {
   logout,
   refreshTokenF,
   getProfilData,
+  getRankingData,
 };
