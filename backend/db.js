@@ -731,7 +731,50 @@ async function getRankingData(cardId, res) {
         return res.status(500).json({ message: "Błąd serwera" });
     }
 }
-
+async function getHistoryData(cardId,res){
+    try{
+        const [rows] = await pool.execute(`SELECT id_parish FROM users WHERE card_id = ?`, [cardId]);
+        if (!rows[0]) {
+            return res.status(403).json({ message: "Brak danych o parafii" });
+        }
+        const parishID = rows[0].id_parish;
+        const [rowsHistory] = await pool.execute(
+            `SELECT
+       DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
+       DAYNAME(date_read) AS day_en,
+       name_service AS name,
+       TIME_FORMAT(time_service, '%H:%i') AS time,
+       points
+     FROM \`${parishID}_readings\`
+     WHERE card_id = ?
+     ORDER BY date_read DESC, time_service DESC
+     LIMIT 10`,
+            [cardId]
+        );
+        if(rowsHistory[0]===undefined){
+            return res.status(403).json({message: 'Brak historii do wyświetlenia'});
+        }
+        const dayMap = {
+            Monday: "Poniedziałek",
+            Tuesday: "Wtorek",
+            Wednesday: "Środa",
+            Thursday: "Czwartek",
+            Friday: "Piątek",
+            Saturday: "Sobota",
+            Sunday: "Niedziela",
+        };
+        return res.status(200).json(rowsHistory.map((row) => ({
+            date: row.date,
+            day: dayMap[row.day_en] || row.day_en,
+            name: row.name,
+            time: row.time,
+            points: row.points,
+        })));
+    }catch (error){
+        console.error("Błąd pobierania danych hitorii", error);
+        return res.status(500).json({ message: "Błąd serwera" });
+    }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -752,4 +795,5 @@ module.exports = {
     refreshTokenF,
     getProfilData,
     getRankingData,
+    getHistoryData,
 };
