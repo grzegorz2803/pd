@@ -740,6 +740,7 @@ async function getHistoryData(cardId,res){
         const parishID = rows[0].id_parish;
         const [rowsHistory] = await pool.execute(
             `SELECT
+    id AS readind_id,
        DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
        DAYNAME(date_read) AS day_en,
        name_service AS name,
@@ -764,6 +765,7 @@ async function getHistoryData(cardId,res){
             Sunday: "Niedziela",
         };
         return res.status(200).json(rowsHistory.map((row) => ({
+            reading_id: row.reading_id,
             date: row.date,
             day: dayMap[row.day_en] || row.day_en,
             name: row.name,
