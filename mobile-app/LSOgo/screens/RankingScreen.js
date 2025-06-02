@@ -41,18 +41,16 @@ export default function RankingScreen({ navigation }) {
       </View>
     );
   }
-
-  // Przykładowe dane statyczne
-  const points = {
-    service: 12,
-    meetings: 3,
-    total: 15,
-  };
-
-  const position = 2;
-  const toFirst = 21;
-  const toPrevious = 5;
-  const overNext = 8;
+  if (!rankingData || !rankingData.month || !rankingData.year) {
+    return (
+      <View style={styles.centered}>
+        <Text style={{ color: "#4a2d0f", fontSize: RFValue(18) }}>
+          Brak danych rankingowych do wyświetlenia.
+        </Text>
+      </View>
+    );
+  }
+  const currentData = mode === "monthly" ? rankingData.month : rankingData.year;
 
   return (
     <ImageBackground
@@ -105,15 +103,17 @@ export default function RankingScreen({ navigation }) {
             <View style={styles.pointsBox}>
               <View style={styles.pointsItem}>
                 <Text style={styles.pointsLabel}>Służba</Text>
-                <Text style={styles.pointsValue}>{points.service}</Text>
+                <Text style={styles.pointsValue}>{currentData.points}</Text>
               </View>
               <View style={styles.pointsItem}>
                 <Text style={styles.pointsLabel}>Zbiórki</Text>
-                <Text style={styles.pointsValue}>{points.meetings}</Text>
+                <Text style={styles.pointsValue}>
+                  {currentData.points_meating}
+                </Text>
               </View>
               <View style={styles.pointsItem}>
                 <Text style={styles.pointsLabel}>Suma</Text>
-                <Text style={styles.pointsValue}>{points.total}</Text>
+                <Text style={styles.pointsValue}>{currentData.sum}</Text>
               </View>
             </View>
           </View>
@@ -124,7 +124,7 @@ export default function RankingScreen({ navigation }) {
               style={styles.shieldImage}
             />
             <View style={styles.shieldTextOverlay}>
-              <Text style={styles.positionNumber}>{position}</Text>
+              <Text style={styles.positionNumber}>{currentData.ranking}</Text>
               <Text style={styles.positionLabel}>AKTUALNE{"\n"}MIEJSCE</Text>
             </View>
           </View>
@@ -133,13 +133,15 @@ export default function RankingScreen({ navigation }) {
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Zestawienie punktowe:</Text>
             <Text style={styles.infoText}>
-              Strata do 1. miejsca: {toFirst} pkt
+              Strata do 1. miejsca: {currentData.strata_do_lidera} pkt
             </Text>
             <Text style={styles.infoText}>
-              Strata do {position - 1}. miejsca: {toPrevious} pkt
+              Strata do {currentData.ranking - 1}. miejsca:{" "}
+              {currentData.strata_do_poprzedzajacego} pkt
             </Text>
             <Text style={styles.infoText}>
-              Przewaga nad {position + 1}. miejscem: {overNext} pkt
+              Przewaga nad {currentData.ranking + 1}. miejscem:{" "}
+              {currentData.przewaga_nad_nastepnym} pkt
             </Text>
           </View>
         </ScrollView>
