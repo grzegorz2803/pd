@@ -10,6 +10,7 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  Alert,
 } from "react-native";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
@@ -49,14 +50,32 @@ export default function HistoryScreen({ navigation }) {
   }
   if (!historyData) {
     return (
-      <View style={styles.centered}>
-        <Text style={{ color: "#4a2d0f", fontSize: RFValue(18) }}>
-          Brak danych rankingowych do wyświetlenia.
-        </Text>
-      </View>
+      <ImageBackground
+        source={require("../assets/background.png")}
+        style={styles.container}
+        resizeMethod=""
+      >
+        <SafeAreaView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <Text style={styles.title}>Historia</Text>
+
+            <View style={styles.centered}>
+              <Text
+                style={{
+                  color: "#4a2d0f",
+                  fontSize: RFValue(18),
+                  textAlign: "center",
+                }}
+              >
+                Brak danych do wyświetlenia.
+              </Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+        {loggedIn && <BottomNavUser navigation={navigation} />}
+      </ImageBackground>
     );
   }
-  console.log(historyData);
   return (
     <ImageBackground
       source={require("../assets/background.png")}

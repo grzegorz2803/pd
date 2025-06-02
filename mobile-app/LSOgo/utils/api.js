@@ -296,11 +296,11 @@ export const getHistoryData = async () => {
       },
     });
     if (!response.ok) {
-      throw new Error("Błąd serwera");
+      throw new Error("Brak danych do wyświetlenia");
     }
+
     return response.json();
   } catch (error) {
-    console.error("Błąd pobierania historii", error);
     return null;
   }
 };
