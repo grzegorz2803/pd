@@ -106,14 +106,15 @@ export default function RankingScreen({ navigation }) {
 
           {/* Informacje o różnicy punktowej */}
           <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Zestawienie punktowe:</Text>
             <Text style={styles.infoText}>
-              {toFirst} PKT DO PIERWSZEGO MIEJSCA
+              Strata do 1. miejsca: {toFirst} pkt
             </Text>
             <Text style={styles.infoText}>
-              {toPrevious} PKT DO POPRZEDNIEGO
+              Strata do {position - 1}. miejsca: {toPrevious} pkt
             </Text>
             <Text style={styles.infoText}>
-              {overNext} PKT PRZEWAGI NAD KOLEJNYM
+              Przewaga nad {position + 1}. miejscem: {overNext} pkt
             </Text>
           </View>
         </ScrollView>
@@ -216,7 +217,6 @@ const styles = StyleSheet.create({
     marginTop: RFValue(5),
   },
   infoBox: {
-    alignItems: "center",
     marginTop: RFValue(10),
   },
   infoText: {
@@ -224,6 +224,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#4a2d0f",
     marginVertical: RFValue(4),
+  },
+  infoLabel: {
     textAlign: "center",
+    fontSize: RFValue(20),
+    fontWeight: "bold",
+    marginBottom: RFValue(5),
   },
 });
