@@ -18,6 +18,7 @@ const {
     logout,
     refreshTokenF,
     getProfilData,
+    getRankingData
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -170,5 +171,10 @@ router.post("/refresh-token", async (req, res)=>{
 router.post("/get-profil-data",authenticateToken,async (req,res)=>{
     const cardId = req.user.card_id;
      await getProfilData(cardId, res);
+})
+router.post("/get-ranking",authenticateToken, async (req, res)=> {
+const  cardId = req.user.card_id;
+
+await getRankingData(cardId,res);
 })
 module.exports = router;
