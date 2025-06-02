@@ -711,7 +711,7 @@ async function getRankingData(cardId, res) {
                 sum: r.sum ?? 0,
                 ranking: r.ranking ?? 0,
                 strata_do_lidera: r.strata_do_lidera ?? 0,
-                strata_do_poprzedzajacego: r.strata_do_poprzedzajacego ?? 0,
+                strata_do_poprzedzajacego: (-r.strata_do_poprzedzajacego) ?? 0,
                 przewaga_nad_nastepnym: r.przewaga_nad_nastepnym ?? 0
             };
         }
