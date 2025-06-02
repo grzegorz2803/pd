@@ -13,9 +13,34 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavUser from "../components/BottomNavUser";
+import { getRankingData } from "../utils/api";
+import { useEffect } from "react";
+import { ActivityIndicator } from "react-native";
 export default function RankingScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
-  const [mode, setMode] = useState("monthly"); // "monthly" or "yearly"
+  const [mode, setMode] = useState("monthly");
+  const [loading, setLoading] = useState(true);
+  const [rankingData, setRankingData] = useState(null);
+  useEffect(() => {
+    const loadRanking = async () => {
+      try {
+        const ranking = await getRankingData();
+        setRankingData(ranking);
+      } catch (error) {
+        console.error("Błąd pobierana danych ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRanking();
+  }, []);
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6e4b1f" />
+      </View>
+    );
+  }
 
   // Przykładowe dane statyczne
   const points = {

@@ -270,6 +270,24 @@ export const removeRefreshToken = async (refreshToken) => {
     console.error("Błąd wysłania refreshtoken na serwer", error);
   }
 };
+export const getRankingData = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-ranking`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Błąd serwera");
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Błąd pobierania rankingu", error);
+    return null;
+  }
+};
+
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
