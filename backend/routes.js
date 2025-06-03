@@ -20,7 +20,8 @@ const {
     getProfilData,
     getRankingData,
     getHistoryData,
-    sendJustificationText
+    sendJustificationText,
+    getNotification
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -187,8 +188,11 @@ router.post("/get-history",authenticateToken, async (req, res)=> {
 router.post("/send-justification-text",authenticateToken,async (req,res)=>{
     const cardId = req.user.card_id;
     const {reading_id, message} = req.body;
-
-    console.log(cardId,reading_id,message);
     await sendJustificationText(cardId,reading_id,message,res);
+})
+router.post("/get-notification",authenticateToken, async (req,res)=>{
+     const cardId = req.user.card_id;
+
+    await getNotification(cardId,res);
 })
 module.exports = router;

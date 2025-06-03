@@ -810,6 +810,96 @@ async function sendJustificationText(cardId, readingId, message, res){
         return res.status(500).json({ message: "Błąd serwera przy wysyłaniu usprawiedliwienia." });
     }
 }
+async function getNotification(cardId,res){
+    try {
+        // 1. Pobierz id_parish
+        const [userRow] = await pool.execute(
+            `SELECT id_parish FROM users WHERE card_id = ?`,
+            [cardId]
+        );
+        if (!userRow.length) {
+            return res.status(404).json({ message: "Użytkownik nie znaleziony" });
+        }
+        const parishID = userRow[0].id_parish;
+
+        // 2. Usprawiedliwienia
+        const [justRows] = await pool.execute(
+            `SELECT j.id,
+                    DATE_FORMAT(r.date_read, '%d.%m.%Y') AS date,
+         r.name_service AS service,
+         j.message,
+        CASE 
+  WHEN j.status = 'pending' THEN 'Oczekuje'
+  WHEN j.status = 'accepted' THEN 'Zaakceptowano'
+  WHEN j.status = 'rejected' THEN 'Odrzucono'
+  ELSE j.status
+            END
+            AS status
+       FROM justifications j
+       JOIN \`${parishID}_readings\` r ON j.reading_id = r.id
+       WHERE j.card_id = ? AND j.hidden_for_user = 0
+       ORDER BY r.date_read DESC`,
+            [cardId]
+        );
+
+        // 3. Wysłane wiadomości użytkownika
+        const [sentMessages] = await pool.execute(
+            `SELECT id, subject, body
+       FROM messages
+       WHERE sender_id = ? AND is_reply = 0 AND hidden_for_user = 0
+       ORDER BY created_at DESC`,
+            [cardId]
+        );
+
+        // 4. Odpowiedzi moderatora do użytkownika
+        const [replies] = await pool.execute(
+            `SELECT reply_to, body
+       FROM messages
+       WHERE is_reply = 1 AND recipient_id = ? AND hidden_for_user = 0`,
+            [cardId]
+        );
+
+        const replyMap = {};
+        replies.forEach((r) => {
+            replyMap[r.reply_to] = r.body;
+        });
+
+        const sentFormatted = sentMessages.map((msg) => ({
+            id: msg.id,
+            subject: msg.subject,
+            body: msg.body,
+            reply: replyMap[msg.id] || null,
+        }));
+
+        // 5. Wiadomości od moderatora do tego usera lub do wszystkich
+        const [modMessages] = await pool.execute(
+            `SELECT id, subject, body
+       FROM messages
+       WHERE sender_id = 'MODERATOR'
+         AND is_reply = 0
+         AND (recipient_id = ? OR recipient_id IS NULL)
+         AND hidden_for_user = 0
+       ORDER BY created_at DESC`,
+            [cardId]
+        );
+
+        const modFormatted = modMessages.map((msg) => ({
+            id: msg.id,
+            subject: msg.subject,
+            body: msg.body,
+        }));
+
+        // 6. Zwróć całość
+        return res.status(200).json({
+            justifications: justRows,
+            sentMessages: sentFormatted,
+            modMessages: modFormatted,
+        });
+    } catch (error) {
+        console.error("Błąd pobierania powiadomień:", error);
+        return res.status(500).json({ message: "Błąd serwera przy pobieraniu powiadomień" });
+    }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -832,4 +922,5 @@ module.exports = {
     getRankingData,
     getHistoryData,
     sendJustificationText,
+    getNotification,
 };
