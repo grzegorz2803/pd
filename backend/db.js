@@ -847,6 +847,7 @@ async function getNotification(cardId,res){
    FROM messages
    WHERE sender_id = ? 
      AND is_reply = 0
+     AND hidden_for_user = 0
      AND id NOT IN (
         SELECT message_id FROM hidden_messages WHERE card_id = ?
      )
@@ -905,6 +906,64 @@ async function getNotification(cardId,res){
         return res.status(500).json({ message: "Błąd serwera przy pobieraniu powiadomień" });
     }
 }
+async function deleteNotification(cardId, type, id, res) {
+    try {
+        switch (type) {
+            case "justification": {
+                const [result] = await pool.execute(
+                    `UPDATE justifications SET hidden_for_user = 1 WHERE id = ? AND card_id = ?`,
+                    [id, cardId]
+                );
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: "Usprawiedliwienie nie znalezione lub brak uprawnień." });
+                }
+                return res.status(200).json({ message: "Usprawiedliwienie ukryte." });
+            }
+
+            case "sent": {
+                const [result] = await pool.execute(
+                    `UPDATE messages SET hidden_for_user = 1 WHERE id = ? AND sender_id = ? AND is_reply = 0`,
+                    [id, cardId]
+                );
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: "Wiadomość nie znaleziona lub brak uprawnień." });
+                }
+                return res.status(200).json({ message: "Wiadomość ukryta." });
+            }
+
+            case "mod": {
+                // sprawdź, czy wiadomość istnieje i czy użytkownik ma do niej dostęp
+                const [check] = await pool.execute(
+                    `SELECT id FROM messages 
+           WHERE id = ? 
+           AND sender_id = 'MODERATOR' 
+           AND is_reply = 0 
+           AND (recipient_id = ? OR recipient_id IS NULL)`,
+                    [id, cardId]
+                );
+
+                if (check.length === 0) {
+                    return res.status(404).json({ message: "Wiadomość nie istnieje lub brak uprawnień." });
+                }
+
+                // ukryj wiadomość przez dodanie do tabeli hidden_messages
+                await pool.execute(
+                    `INSERT IGNORE INTO hidden_messages (card_id, message_id) VALUES (?, ?)`,
+                    [cardId, id]
+                );
+
+                return res.status(200).json({ message: "Wiadomość ukryta." });
+            }
+
+            default:
+                return res.status(400).json({ message: "Nieobsługiwany typ powiadomienia." });
+        }
+    } catch (error) {
+        console.error("Błąd podczas ukrywania powiadomienia:", error);
+        return res.status(500).json({ message: "Błąd serwera przy ukrywaniu powiadomienia." });
+    }
+}
+
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -928,4 +987,5 @@ module.exports = {
     getHistoryData,
     sendJustificationText,
     getNotification,
+    deleteNotification,
 };

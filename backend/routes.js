@@ -21,7 +21,8 @@ const {
     getRankingData,
     getHistoryData,
     sendJustificationText,
-    getNotification
+    getNotification,
+    deleteNotification,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -195,4 +196,14 @@ router.post("/get-notification",authenticateToken, async (req,res)=>{
 
     await getNotification(cardId,res);
 })
+router.post("/delete-notification", authenticateToken, async (req, res) => {
+    const cardId = req.user.card_id;
+    const { type, id } = req.body;
+
+    if (!["justification", "sent", "mod"].includes(type) || !id) {
+        return res.status(400).json({ message: "Nieprawidłowe dane wejściowe." });
+    }
+
+    await deleteNotification(cardId, type, id, res);
+});
 module.exports = router;
