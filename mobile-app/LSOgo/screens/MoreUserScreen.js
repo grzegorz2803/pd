@@ -29,7 +29,7 @@ export default function MoreScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Powiadomienia")}
+            onPress={() => navigation.navigate("Notification")}
           >
             <View style={styles.optionContent}>
               <Image
