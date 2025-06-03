@@ -23,6 +23,7 @@ const {
     sendJustificationText,
     getNotification,
     deleteNotification,
+    sendMessage,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -206,4 +207,10 @@ router.post("/delete-notification", authenticateToken, async (req, res) => {
 
     await deleteNotification(cardId, type, id, res);
 });
+router.post("/send-message",authenticateToken,async (req,res)=>{
+    const cardId = req.user.card_id;
+    const {subject, message} = req.body;
+    console.log(cardId,subject,message);
+    await sendMessage(cardId,subject,message,res);
+})
 module.exports = router;

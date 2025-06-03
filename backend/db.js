@@ -963,7 +963,29 @@ async function deleteNotification(cardId, type, id, res) {
         return res.status(500).json({ message: "Błąd serwera przy ukrywaniu powiadomienia." });
     }
 }
+async function sendMessage(cardId, subject, message,res){
+    try {
+        if (!subject || !message) {
+            return res.status(400).json({ message: "Temat i treść wiadomości są wymagane." });
+        }
 
+        const [result] = await pool.execute(
+            `INSERT INTO messages 
+        (sender_id, recipient_id, subject, body, is_reply, hidden_for_user, hidden_for_moderator)
+       VALUES (?, 'MODERATOR', ?, ?, 0, 0, 0)`,
+            [cardId, subject.trim(), message.trim()]
+        );
+
+        if (result.affectedRows === 1) {
+            return res.status(200).json({ message: "Wiadomość została wysłana." });
+        } else {
+            return res.status(500).json({ message: "Nie udało się zapisać wiadomości." });
+        }
+    } catch (error) {
+        console.error("Błąd przy zapisie wiadomości:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas wysyłania wiadomości." });
+    }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -988,4 +1010,5 @@ module.exports = {
     sendJustificationText,
     getNotification,
     deleteNotification,
+    sendMessage,
 };
