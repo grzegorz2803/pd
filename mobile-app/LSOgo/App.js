@@ -13,6 +13,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ProfilScreen from "./screens/ProfilScreen";
 import MoreUserScreen from "./screens/MoreUserScreen";
 import RankingScreen from "./screens/RankingScreen";
+import HistoryScreen from "./screens/HistoryScreen";
+import NotificationsScreen from "./screens/NotificationsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +42,8 @@ export default function App() {
             <Stack.Screen name="Profil" component={ProfilScreen} />
             <Stack.Screen name="MoreUser" component={MoreUserScreen} />
             <Stack.Screen name="Ranking" component={RankingScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="Notification" component={NotificationsScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

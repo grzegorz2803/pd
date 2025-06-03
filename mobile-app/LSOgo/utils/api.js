@@ -287,7 +287,80 @@ export const getRankingData = async () => {
     return null;
   }
 };
+export const getHistoryData = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-history`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Brak danych do wyświetlenia");
+    }
 
+    return response.json();
+  } catch (error) {
+    return null;
+  }
+};
+export const sendJustificationText = async (reading_id, message) => {
+  try {
+    const response = await fetchWithAuth(
+      `${BASE_URL}/send-justification-text`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reading_id: reading_id,
+          message: message,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Nie wysłano usprawiedliwienia");
+    }
+  } catch (error) {
+    console.error("Błąd serwera", error);
+    return null;
+  }
+};
+export const getNotification = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Brak danych do wyświetlenia");
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Błąd serwera: ", error);
+    return null;
+  }
+};
+export const deleteNotification = async (type, id) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/delete-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type, id }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Błąd usuwania");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
