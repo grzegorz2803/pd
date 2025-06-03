@@ -755,7 +755,11 @@ async function getHistoryData(cardId,res){
         if(rowsHistory[0]===undefined){
             return res.status(403).json({message: 'Brak historii do wyświetlenia'});
         }
-        console.log(rowsHistory[0]);
+        const [justifiedRows] = await pool.execute(
+            `SELECT reading_id FROM justifications WHERE card_id = ?`,
+            [cardId]
+        );
+        const justifiedIds = new Set(justifiedRows.map((j) => j.reading_id));
         const dayMap = {
             Monday: "Poniedziałek",
             Tuesday: "Wtorek",
@@ -765,17 +769,45 @@ async function getHistoryData(cardId,res){
             Saturday: "Sobota",
             Sunday: "Niedziela",
         };
-        return res.status(200).json(rowsHistory.map((row) => ({
+        const result = rowsHistory.map((row) => ({
             reading_id: row.reading_id,
             date: row.date,
             day: dayMap[row.day_en] || row.day_en,
             name: row.name,
             time: row.time,
             points: row.points,
-        })));
+            has_justification: justifiedIds.has(row.reading_id)
+        }));
+        return res.status(200).json(result);
     }catch (error){
         console.error("Błąd pobierania danych hitorii", error);
         return res.status(500).json({ message: "Błąd serwera" });
+    }
+}
+async function sendJustificationText(cardId, readingId, message, res){
+    try {
+
+        const [existing] = await pool.execute(
+            `SELECT id FROM justifications WHERE card_id = ? AND reading_id = ?`,
+            [cardId, readingId]
+        );
+
+        if (existing.length > 0) {
+            return res.status(400).json({
+                message: "Usprawiedliwienie dla tego odczytu zostało już wysłane.",
+            });
+        }
+
+
+        await pool.execute(
+            `INSERT INTO justifications (reading_id, card_id, message) VALUES (?, ?, ?)`,
+            [readingId, cardId, message]
+        );
+
+        return res.status(200).json({ message: "Usprawiedliwienie zostało wysłane." });
+    } catch (error) {
+        console.error("Błąd podczas zapisu usprawiedliwienia:", error);
+        return res.status(500).json({ message: "Błąd serwera przy wysyłaniu usprawiedliwienia." });
     }
 }
 module.exports = {
@@ -799,4 +831,5 @@ module.exports = {
     getProfilData,
     getRankingData,
     getHistoryData,
+    sendJustificationText,
 };
