@@ -345,6 +345,22 @@ export const getNotification = async () => {
     return null;
   }
 };
+export const deleteNotification = async (type, id) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/delete-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type, id }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Błąd usuwania");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

@@ -11,30 +11,38 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavUser from "../components/BottomNavUser";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useState } from "react";
-import { useEffect } from "react";
-import { getNotification } from "../utils/api";
+import { getNotification, deleteNotification } from "../utils/api";
 
 export default function NotificationsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const { loggedIn } = useContext(AuthContext);
   const [notificationData, setNotificationData] = useState(null);
 
+  const loadNotification = async () => {
+    try {
+      const notification = await getNotification();
+      setNotificationData(notification);
+    } catch (error) {
+      console.error("Błąd pobierana powiadomień ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadNotification = async () => {
-      try {
-        const notification = await getNotification();
-        setNotificationData(notification);
-      } catch (error) {
-        console.error("Błąd pobierana powiadomień ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadNotification();
   }, []);
+
+  const handleDelete = async (type, id) => {
+    try {
+      await deleteNotification(type, id);
+      loadNotification();
+    } catch (error) {
+      console.error("Błąd usuwania powiadomienia:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -54,7 +62,6 @@ export default function NotificationsScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.title}>Powiadomienia</Text>
-
             <View style={styles.centered}>
               <Text
                 style={{
@@ -102,7 +109,10 @@ export default function NotificationsScreen({ navigation }) {
                   >
                     Status: {item.status}
                   </Text>
-                  <TouchableOpacity style={styles.deleteButton}>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete("justification", item.id)}
+                  >
                     <Text style={styles.deleteText}>Usuń</Text>
                   </TouchableOpacity>
                 </View>
@@ -127,7 +137,10 @@ export default function NotificationsScreen({ navigation }) {
                       <Text style={styles.bodyText}>{item.reply}</Text>
                     </View>
                   )}
-                  <TouchableOpacity style={styles.deleteButton}>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete("sent", item.id)}
+                  >
                     <Text style={styles.deleteText}>Usuń</Text>
                   </TouchableOpacity>
                 </View>
@@ -144,7 +157,10 @@ export default function NotificationsScreen({ navigation }) {
                 <View key={item.id} style={styles.card}>
                   <Text style={styles.subjectText}>{item.subject}</Text>
                   <Text style={styles.bodyText}>{item.body}</Text>
-                  <TouchableOpacity style={styles.deleteButton}>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete("mod", item.id)}
+                  >
                     <Text style={styles.deleteText}>Usuń</Text>
                   </TouchableOpacity>
                 </View>
@@ -157,25 +173,13 @@ export default function NotificationsScreen({ navigation }) {
     </ImageBackground>
   );
 }
-// Helper do statusu
-const getStatusLabel = (status) => {
-  switch (status) {
-    case "pending":
-      return "Oczekuje";
-    case "accepted":
-      return "Zaakceptowano";
-    case "rejected":
-      return "Odrzucono";
-    default:
-      return "";
-  }
-};
 
+// Helper do statusu
 const getStatusStyle = (status) => {
   switch (status) {
-    case "accepted":
+    case "Zaakceptowano":
       return { color: "#118800" };
-    case "rejected":
+    case "Odrzucono":
       return { color: "#c00000" };
     default:
       return { color: "#aa8000" };
@@ -259,5 +263,10 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#c4a46d",
     marginVertical: RFValue(16),
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
