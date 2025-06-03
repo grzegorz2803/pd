@@ -14,11 +14,14 @@ import BottomNavUser from "../components/BottomNavUser";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useState } from "react";
+import { useEffect } from "react";
+import { getNotification } from "../utils/api";
 
 export default function NotificationsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const { loggedIn } = useContext(AuthContext);
   const [notificationData, setNotificationData] = useState(null);
+
   useEffect(() => {
     const loadNotification = async () => {
       try {
@@ -32,6 +35,7 @@ export default function NotificationsScreen({ navigation }) {
     };
     loadNotification();
   }, []);
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -39,40 +43,37 @@ export default function NotificationsScreen({ navigation }) {
       </View>
     );
   }
-  // Przykładowe dane statyczne:
-  const justifications = [
-    {
-      id: 1,
-      date: "02.06.2025",
-      service: "Brak służby w niedzielę",
-      message: "Byłem chory",
-      status: "pending",
-    },
-    {
-      id: 2,
-      date: "26.05.2025",
-      service: "Brak służby w tygodniu",
-      message: "Wyjazd klasowy",
-      status: "accepted",
-    },
-  ];
 
-  const sentMessages = [
-    {
-      id: 101,
-      subject: "Pytanie o grafik",
-      body: "Czy mogę być w sobotę zwolniony?",
-      reply: "Tak, jesteś już zaznaczony jako nieobecny.",
-    },
-  ];
+  if (!notificationData) {
+    return (
+      <ImageBackground
+        source={require("../assets/background.png")}
+        style={styles.container}
+        resizeMethod=""
+      >
+        <SafeAreaView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <Text style={styles.title}>Powiadomienia</Text>
 
-  const modMessages = [
-    {
-      id: 201,
-      subject: "Zbiórka",
-      body: "Przypominam o zbiórce w czwartek o 18:00.",
-    },
-  ];
+            <View style={styles.centered}>
+              <Text
+                style={{
+                  color: "#4a2d0f",
+                  fontSize: RFValue(18),
+                  textAlign: "center",
+                }}
+              >
+                Brak danych do wyświetlenia.
+              </Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+        {loggedIn && <BottomNavUser navigation={navigation} />}
+      </ImageBackground>
+    );
+  }
+
+  const { justifications, sentMessages, modMessages } = notificationData;
 
   return (
     <ImageBackground
@@ -85,62 +86,77 @@ export default function NotificationsScreen({ navigation }) {
           <Text style={styles.title}>Powiadomienia</Text>
 
           {/* Sekcja 1: Usprawiedliwienia */}
-          <Text style={styles.sectionHeader}>Prośby o usprawiedliwienie</Text>
-          {justifications.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <Text style={styles.dateLine}>
-                {item.date} – {item.service}
+          {Array.isArray(justifications) && justifications.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>
+                Prośby o usprawiedliwienie
               </Text>
-              <Text style={styles.bodyText}>Powód: {item.message}</Text>
-              <Text style={[styles.statusText, getStatusStyle(item.status)]}>
-                Status: {getStatusLabel(item.status)}
-              </Text>
-              <TouchableOpacity style={styles.deleteButton}>
-                <Text style={styles.deleteText}>Usuń</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          <View style={styles.divider} />
-
-          {/* Sekcja 2: Wiadomości użytkownika */}
-          <Text style={styles.sectionHeader}>Wysłane wiadomości</Text>
-          {sentMessages.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <Text style={styles.subjectText}>{item.subject}</Text>
-              <Text style={styles.bodyText}>{item.body}</Text>
-              {item.reply && (
-                <View style={styles.replyBox}>
-                  <Text style={styles.replyLabel}>Odpowiedź moderatora:</Text>
-                  <Text style={styles.bodyText}>{item.reply}</Text>
+              {justifications.map((item) => (
+                <View key={item.id} style={styles.card}>
+                  <Text style={styles.dateLine}>
+                    {item.date} – {item.service}
+                  </Text>
+                  <Text style={styles.bodyText}>Powód: {item.message}</Text>
+                  <Text
+                    style={[styles.statusText, getStatusStyle(item.status)]}
+                  >
+                    Status: {item.status}
+                  </Text>
+                  <TouchableOpacity style={styles.deleteButton}>
+                    <Text style={styles.deleteText}>Usuń</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-              <TouchableOpacity style={styles.deleteButton}>
-                <Text style={styles.deleteText}>Usuń</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+              ))}
+              <View style={styles.divider} />
+            </>
+          )}
 
-          <View style={styles.divider} />
+          {/* Sekcja 2: Wysłane wiadomości */}
+          {Array.isArray(sentMessages) && sentMessages.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>Wysłane wiadomości</Text>
+              {sentMessages.map((item) => (
+                <View key={item.id} style={styles.card}>
+                  <Text style={styles.subjectText}>{item.subject}</Text>
+                  <Text style={styles.bodyText}>{item.body}</Text>
+                  {item.reply && (
+                    <View style={styles.replyBox}>
+                      <Text style={styles.replyLabel}>
+                        Odpowiedź moderatora:
+                      </Text>
+                      <Text style={styles.bodyText}>{item.reply}</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity style={styles.deleteButton}>
+                    <Text style={styles.deleteText}>Usuń</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View style={styles.divider} />
+            </>
+          )}
 
           {/* Sekcja 3: Wiadomości od moderatora */}
-          <Text style={styles.sectionHeader}>Wiadomości od moderatora</Text>
-          {modMessages.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <Text style={styles.subjectText}>{item.subject}</Text>
-              <Text style={styles.bodyText}>{item.body}</Text>
-              <TouchableOpacity style={styles.deleteButton}>
-                <Text style={styles.deleteText}>Usuń</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+          {Array.isArray(modMessages) && modMessages.length > 0 && (
+            <>
+              <Text style={styles.sectionHeader}>Wiadomości od moderatora</Text>
+              {modMessages.map((item) => (
+                <View key={item.id} style={styles.card}>
+                  <Text style={styles.subjectText}>{item.subject}</Text>
+                  <Text style={styles.bodyText}>{item.body}</Text>
+                  <TouchableOpacity style={styles.deleteButton}>
+                    <Text style={styles.deleteText}>Usuń</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
       {loggedIn && <BottomNavUser navigation={navigation} />}
     </ImageBackground>
   );
 }
-
 // Helper do statusu
 const getStatusLabel = (status) => {
   switch (status) {
