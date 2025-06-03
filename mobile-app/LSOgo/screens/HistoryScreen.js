@@ -3,12 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ImageBackground,
   SafeAreaView,
   ScrollView,
-  Modal,
   TextInput,
   Alert,
 } from "react-native";
@@ -16,7 +14,6 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavUser from "../components/BottomNavUser";
-import { getRankingData } from "../utils/api";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
 import { getHistoryData } from "../utils/api";
@@ -29,7 +26,6 @@ export default function HistoryScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [justificationText, setJustificationText] = useState("");
   const [selectedReadingId, setSelectedReadingId] = useState(null);
-  const [justifiedIds, setJustifiedIds] = useState([]);
   useEffect(() => {
     const loadHistory = async () => {
       try {
@@ -108,7 +104,7 @@ export default function HistoryScreen({ navigation }) {
               <Text style={styles.time}>{entry.time}</Text>
 
               {entry.points < 0 &&
-                (justifiedIds.includes(entry.reading_id) ? (
+                (entry.has_justification ? (
                   <Text
                     style={{
                       marginTop: RFValue(10),
@@ -163,9 +159,13 @@ export default function HistoryScreen({ navigation }) {
                       selectedReadingId,
                       justificationText
                     );
-
-                    // Dodaj ID do listy usprawiedliwionych
-                    setJustifiedIds((prev) => [...prev, selectedReadingId]);
+                    setHistoryData((prevData) =>
+                      prevData.map((item) =>
+                        item.reading_id === selectedReadingId
+                          ? { ...item, has_justification: true }
+                          : item
+                      )
+                    );
 
                     // Reset modal
                     setModalVisible(false);
