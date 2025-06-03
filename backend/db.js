@@ -842,13 +842,16 @@ async function getNotification(cardId,res){
             [cardId]
         );
 
-        // 3. Wysłane wiadomości użytkownika
         const [sentMessages] = await pool.execute(
             `SELECT id, subject, body
-       FROM messages
-       WHERE sender_id = ? AND is_reply = 0 AND hidden_for_user = 0
-       ORDER BY created_at DESC`,
-            [cardId]
+   FROM messages
+   WHERE sender_id = ? 
+     AND is_reply = 0
+     AND id NOT IN (
+        SELECT message_id FROM hidden_messages WHERE card_id = ?
+     )
+   ORDER BY created_at DESC`,
+            [cardId, cardId]
         );
 
         // 4. Odpowiedzi moderatora do użytkownika
@@ -874,13 +877,15 @@ async function getNotification(cardId,res){
         // 5. Wiadomości od moderatora do tego usera lub do wszystkich
         const [modMessages] = await pool.execute(
             `SELECT id, subject, body
-       FROM messages
-       WHERE sender_id = 'MODERATOR'
-         AND is_reply = 0
-         AND (recipient_id = ? OR recipient_id IS NULL)
-         AND hidden_for_user = 0
-       ORDER BY created_at DESC`,
-            [cardId]
+             FROM messages
+             WHERE sender_id = 'MODERATOR'
+               AND is_reply = 0
+               AND (recipient_id = ? OR recipient_id IS NULL)
+               AND id NOT IN (
+                 SELECT message_id FROM hidden_messages WHERE card_id = ?
+             )
+             ORDER BY created_at DESC`,
+            [cardId, cardId]
         );
 
         const modFormatted = modMessages.map((msg) => ({
