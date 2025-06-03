@@ -7,14 +7,38 @@ import {
   ScrollView,
   TouchableOpacity,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavUser from "../components/BottomNavUser";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { useState } from "react";
 
 export default function NotificationsScreen({ navigation }) {
+  const [loading, setLoading] = useState(true);
   const { loggedIn } = useContext(AuthContext);
+  const [notificationData, setNotificationData] = useState(null);
+  useEffect(() => {
+    const loadNotification = async () => {
+      try {
+        const notification = await getNotification();
+        setNotificationData(notification);
+      } catch (error) {
+        console.error("Błąd pobierana powiadomień ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadNotification();
+  }, []);
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#6e4b1f" />
+      </View>
+    );
+  }
   // Przykładowe dane statyczne:
   const justifications = [
     {
