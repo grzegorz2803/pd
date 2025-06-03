@@ -20,6 +20,7 @@ import { getRankingData } from "../utils/api";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
 import { getHistoryData } from "../utils/api";
+import { sendJustificationText } from "../utils/api";
 
 export default function HistoryScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
@@ -28,6 +29,7 @@ export default function HistoryScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [justificationText, setJustificationText] = useState("");
   const [selectedReadingId, setSelectedReadingId] = useState(null);
+  const [justifiedIds, setJustifiedIds] = useState([]);
   useEffect(() => {
     const loadHistory = async () => {
       try {
@@ -105,17 +107,29 @@ export default function HistoryScreen({ navigation }) {
               <Text style={styles.serviceName}>{entry.name}</Text>
               <Text style={styles.time}>{entry.time}</Text>
 
-              {entry.points < 0 && (
-                <TouchableOpacity
-                  style={styles.justifyButton}
-                  onPress={() => {
-                    setSelectedReadingId(entry.reading_id);
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={styles.justifyText}>USPRAWIEDLIWIJ</Text>
-                </TouchableOpacity>
-              )}
+              {entry.points < 0 &&
+                (justifiedIds.includes(entry.reading_id) ? (
+                  <Text
+                    style={{
+                      marginTop: RFValue(10),
+                      color: "#4a2d0f",
+                      fontWeight: "bold",
+                      alignSelf: "flex-end",
+                    }}
+                  >
+                    Wysłano prośbę o usprawiedliwienie
+                  </Text>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.justifyButton}
+                    onPress={() => {
+                      setSelectedReadingId(entry.reading_id);
+                      setModalVisible(true);
+                    }}
+                  >
+                    <Text style={styles.justifyText}>USPRAWIEDLIWIJ</Text>
+                  </TouchableOpacity>
+                ))}
             </View>
           ))}
         </ScrollView>
@@ -143,14 +157,27 @@ export default function HistoryScreen({ navigation }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalSubmit}
-                onPress={() => {
-                  console.log("Wyślij usprawiedliwienie:", {
-                    reading_id: selectedReadingId,
-                    message: justificationText,
-                  });
-                  // TODO: tutaj dodamy fetch() do API
-                  setModalVisible(false);
-                  setJustificationText("");
+                onPress={async () => {
+                  try {
+                    await sendJustificationText(
+                      selectedReadingId,
+                      justificationText
+                    );
+
+                    // Dodaj ID do listy usprawiedliwionych
+                    setJustifiedIds((prev) => [...prev, selectedReadingId]);
+
+                    // Reset modal
+                    setModalVisible(false);
+                    setJustificationText("");
+                    setSelectedReadingId(null);
+                  } catch (error) {
+                    Alert.alert(
+                      "Błąd",
+                      "Nie udało się wysłać usprawiedliwienia."
+                    );
+                    console.error(error);
+                  }
                 }}
               >
                 <Text style={styles.modalButtonText}>Wyślij</Text>

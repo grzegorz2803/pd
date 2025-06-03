@@ -304,6 +304,29 @@ export const getHistoryData = async () => {
     return null;
   }
 };
+export const sendJustificationText = async (reading_id, message) => {
+  try {
+    const response = await fetchWithAuth(
+      `${BASE_URL}/send-justification-text`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reading_id: reading_id,
+          message: message,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Nie wysłano usprawiedliwienia");
+    }
+  } catch (error) {
+    console.error("Błąd serwera", error);
+    return null;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
