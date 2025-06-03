@@ -863,6 +863,257 @@ async function getRankingData(cardId, res) {
     return res.status(500).json({ message: "Błąd serwera" });
   }
 }
+async function getHistoryData(cardId, res) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+    if (!rows[0]) {
+      return res.status(403).json({ message: "Brak danych o parafii" });
+    }
+    const parishID = rows[0].id_parish;
+    const [rowsHistory] = await pool.execute(
+      `SELECT
+    id AS reading_id,
+       DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
+       DAYNAME(date_read) AS day_en,
+       name_service AS name,
+       TIME_FORMAT(time_service, '%H:%i') AS time,
+       points
+     FROM \`${parishID}_readings\`
+     WHERE card_id = ?
+     ORDER BY date_read DESC, time_service DESC
+     LIMIT 10`,
+      [cardId]
+    );
+    if (rowsHistory[0] === undefined) {
+      return res.status(403).json({ message: "Brak historii do wyświetlenia" });
+    }
+    const [justifiedRows] = await pool.execute(
+      `SELECT reading_id FROM justifications WHERE card_id = ?`,
+      [cardId]
+    );
+    const justifiedIds = new Set(justifiedRows.map((j) => j.reading_id));
+    const dayMap = {
+      Monday: "Poniedziałek",
+      Tuesday: "Wtorek",
+      Wednesday: "Środa",
+      Thursday: "Czwartek",
+      Friday: "Piątek",
+      Saturday: "Sobota",
+      Sunday: "Niedziela",
+    };
+    const result = rowsHistory.map((row) => ({
+      reading_id: row.reading_id,
+      date: row.date,
+      day: dayMap[row.day_en] || row.day_en,
+      name: row.name,
+      time: row.time,
+      points: row.points,
+      has_justification: justifiedIds.has(row.reading_id),
+    }));
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Błąd pobierania danych hitorii", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+async function sendJustificationText(cardId, readingId, message, res) {
+  try {
+    const [existing] = await pool.execute(
+      `SELECT id FROM justifications WHERE card_id = ? AND reading_id = ?`,
+      [cardId, readingId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        message: "Usprawiedliwienie dla tego odczytu zostało już wysłane.",
+      });
+    }
+
+    await pool.execute(
+      `INSERT INTO justifications (reading_id, card_id, message) VALUES (?, ?, ?)`,
+      [readingId, cardId, message]
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Usprawiedliwienie zostało wysłane." });
+  } catch (error) {
+    console.error("Błąd podczas zapisu usprawiedliwienia:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy wysyłaniu usprawiedliwienia." });
+  }
+}
+async function getNotification(cardId, res) {
+  try {
+    // 1. Pobierz id_parish
+    const [userRow] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+    if (!userRow.length) {
+      return res.status(404).json({ message: "Użytkownik nie znaleziony" });
+    }
+    const parishID = userRow[0].id_parish;
+
+    // 2. Usprawiedliwienia
+    const [justRows] = await pool.execute(
+      `SELECT j.id,
+                    DATE_FORMAT(r.date_read, '%d.%m.%Y') AS date,
+         r.name_service AS service,
+         j.message,
+        CASE 
+  WHEN j.status = 'pending' THEN 'Oczekuje'
+  WHEN j.status = 'accepted' THEN 'Zaakceptowano'
+  WHEN j.status = 'rejected' THEN 'Odrzucono'
+  ELSE j.status
+            END
+            AS status
+       FROM justifications j
+       JOIN \`${parishID}_readings\` r ON j.reading_id = r.id
+       WHERE j.card_id = ? AND j.hidden_for_user = 0
+       ORDER BY r.date_read DESC`,
+      [cardId]
+    );
+
+    const [sentMessages] = await pool.execute(
+      `SELECT id, subject, body
+   FROM messages
+   WHERE sender_id = ? 
+     AND is_reply = 0
+     AND hidden_for_user = 0
+     AND id NOT IN (
+        SELECT message_id FROM hidden_messages WHERE card_id = ?
+     )
+   ORDER BY created_at DESC`,
+      [cardId, cardId]
+    );
+
+    // 4. Odpowiedzi moderatora do użytkownika
+    const [replies] = await pool.execute(
+      `SELECT reply_to, body
+       FROM messages
+       WHERE is_reply = 1 AND recipient_id = ? AND hidden_for_user = 0`,
+      [cardId]
+    );
+
+    const replyMap = {};
+    replies.forEach((r) => {
+      replyMap[r.reply_to] = r.body;
+    });
+
+    const sentFormatted = sentMessages.map((msg) => ({
+      id: msg.id,
+      subject: msg.subject,
+      body: msg.body,
+      reply: replyMap[msg.id] || null,
+    }));
+
+    // 5. Wiadomości od moderatora do tego usera lub do wszystkich
+    const [modMessages] = await pool.execute(
+      `SELECT id, subject, body
+             FROM messages
+             WHERE sender_id = 'MODERATOR'
+               AND is_reply = 0
+               AND (recipient_id = ? OR recipient_id IS NULL)
+               AND id NOT IN (
+                 SELECT message_id FROM hidden_messages WHERE card_id = ?
+             )
+             ORDER BY created_at DESC`,
+      [cardId, cardId]
+    );
+
+    const modFormatted = modMessages.map((msg) => ({
+      id: msg.id,
+      subject: msg.subject,
+      body: msg.body,
+    }));
+
+    // 6. Zwróć całość
+    return res.status(200).json({
+      justifications: justRows,
+      sentMessages: sentFormatted,
+      modMessages: modFormatted,
+    });
+  } catch (error) {
+    console.error("Błąd pobierania powiadomień:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy pobieraniu powiadomień" });
+  }
+}
+async function deleteNotification(cardId, type, id, res) {
+  try {
+    switch (type) {
+      case "justification": {
+        const [result] = await pool.execute(
+          `UPDATE justifications SET hidden_for_user = 1 WHERE id = ? AND card_id = ?`,
+          [id, cardId]
+        );
+        if (result.affectedRows === 0) {
+          return res
+            .status(404)
+            .json({
+              message: "Usprawiedliwienie nie znalezione lub brak uprawnień.",
+            });
+        }
+        return res.status(200).json({ message: "Usprawiedliwienie ukryte." });
+      }
+
+      case "sent": {
+        const [result] = await pool.execute(
+          `UPDATE messages SET hidden_for_user = 1 WHERE id = ? AND sender_id = ? AND is_reply = 0`,
+          [id, cardId]
+        );
+        if (result.affectedRows === 0) {
+          return res
+            .status(404)
+            .json({ message: "Wiadomość nie znaleziona lub brak uprawnień." });
+        }
+        return res.status(200).json({ message: "Wiadomość ukryta." });
+      }
+
+      case "mod": {
+        // sprawdź, czy wiadomość istnieje i czy użytkownik ma do niej dostęp
+        const [check] = await pool.execute(
+          `SELECT id FROM messages 
+           WHERE id = ? 
+           AND sender_id = 'MODERATOR' 
+           AND is_reply = 0 
+           AND (recipient_id = ? OR recipient_id IS NULL)`,
+          [id, cardId]
+        );
+
+        if (check.length === 0) {
+          return res
+            .status(404)
+            .json({ message: "Wiadomość nie istnieje lub brak uprawnień." });
+        }
+
+        // ukryj wiadomość przez dodanie do tabeli hidden_messages
+        await pool.execute(
+          `INSERT IGNORE INTO hidden_messages (card_id, message_id) VALUES (?, ?)`,
+          [cardId, id]
+        );
+
+        return res.status(200).json({ message: "Wiadomość ukryta." });
+      }
+
+      default:
+        return res
+          .status(400)
+          .json({ message: "Nieobsługiwany typ powiadomienia." });
+    }
+  } catch (error) {
+    console.error("Błąd podczas ukrywania powiadomienia:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy ukrywaniu powiadomienia." });
+  }
+}
 
 module.exports = {
   getUserByCardIdAndIdPar,
@@ -884,4 +1135,8 @@ module.exports = {
   refreshTokenF,
   getProfilData,
   getRankingData,
+  getHistoryData,
+  sendJustificationText,
+  getNotification,
+  deleteNotification,
 };
