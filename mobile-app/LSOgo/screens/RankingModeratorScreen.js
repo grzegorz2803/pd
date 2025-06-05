@@ -13,22 +13,26 @@ import {
 import BottomNavModerator from "../components/BottomNavModerator";
 import { RFValue } from "react-native-responsive-fontsize";
 import { AuthContext } from "../context/AuthContext";
-import { getRankingAll } from "../utils/api"; // zakładamy że masz tę funkcję
+import { getRankingMonth, getRankingYear, getRankingAll } from "../utils/api";
 
 export default function ModeratorRankingScreen({ navigation }) {
+  const { loggedIn } = useContext(AuthContext);
+  const [noData, setNoData] = useState(false);
+
   const [mode, setMode] = useState("monthly");
-  const [selectedMonth, setSelectedMonth] = useState("");
-  const [selectedYear, setSelectedYear] = useState("");
-  const [availableMonths, setAvailableMonths] = useState([]);
-  const [availableYears, setAvailableYears] = useState([]);
-  const [monthlyRanking, setMonthlyRanking] = useState([]);
-  const [yearlyRanking, setYearlyRanking] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState("01");
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString()
+  );
   const [loading, setLoading] = useState(true);
+  const [rankingData, setRankingData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [yearlyData, setYearlyData] = useState([]);
+
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
-  const { loggedIn } = useContext(AuthContext);
 
-  const monthsLabels = [
+  const months = [
     { label: "Styczeń", value: "01" },
     { label: "Luty", value: "02" },
     { label: "Marzec", value: "03" },
@@ -43,35 +47,83 @@ export default function ModeratorRankingScreen({ navigation }) {
     { label: "Grudzień", value: "12" },
   ];
 
-  useEffect(() => {
-    const fetchRanking = async () => {
-      setLoading(true);
-      try {
-        const data = await getRankingAll();
-
-        setSelectedMonth(data.current_month);
-        setSelectedYear(data.current_year);
-        setAvailableMonths(data.available_months || []);
-        setAvailableYears(data.available_years || []);
-        setMonthlyRanking(data.monthlyRanking);
-        setYearlyRanking(data.yearlyRanking);
-      } catch (error) {
-        console.error("Błąd podczas pobierania danych rankingu:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRanking();
-  }, []);
+  const years = Array.from({ length: 5 }, (_, i) =>
+    (new Date().getFullYear() - i).toString()
+  );
 
   const getMonthLabel = (value) => {
-    const found = monthsLabels.find((m) => m.value === value);
+    const found = months.find((m) => m.value === value);
     return found ? found.label : value;
   };
 
-  const displayedRanking = mode === "monthly" ? monthlyRanking : yearlyRanking;
+  useEffect(() => {
+    loadRanking();
+  }, []);
 
+  useEffect(() => {
+    if (mode === "monthly") {
+      setRankingData(
+        monthlyData.length > 0
+          ? monthlyData.filter(
+              (r) =>
+                selectedMonth === currentMonth && selectedYear === currentYear
+            )
+          : []
+      );
+    } else {
+      setRankingData(
+        yearlyData.length > 0
+          ? yearlyData.filter((r) => selectedYear === currentYear)
+          : []
+      );
+    }
+  }, [mode, selectedMonth, selectedYear, monthlyData, yearlyData]);
+
+  const [currentMonth, setCurrentMonth] = useState("01");
+  const [currentYear, setCurrentYear] = useState(
+    new Date().getFullYear().toString()
+  );
+
+  const loadRanking = async () => {
+    try {
+      setLoading(true);
+      const data = await getRankingAll();
+      setCurrentMonth(data.current_month);
+      setCurrentYear(data.current_year);
+      setSelectedMonth(data.current_month);
+      setSelectedYear(data.current_year);
+      setMonthlyData(data.monthlyRanking || []);
+      setYearlyData(data.yearlyRanking || []);
+      setRankingData(data.monthlyRanking || []);
+    } catch (error) {
+      console.error("Błąd pobierania rankingu:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchRankingData = async (month, year, mode) => {
+    setLoading(true);
+    setNoData(false);
+    try {
+      let data = [];
+
+      if (mode === "monthly") {
+        const response = await getRankingMonth(month, year); // zakładamy że zwraca tablicę
+        data = response || [];
+      } else {
+        const response = await getRankingYear(year);
+        data = response || [];
+      }
+
+      setRankingData(data);
+      setNoData(data.length === 0);
+    } catch (error) {
+      console.error("Błąd pobierania rankingu:", error);
+      setNoData(true);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -82,13 +134,17 @@ export default function ModeratorRankingScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.title}>Ranking</Text>
 
+          {/* Przełącznik */}
           <View style={styles.toggleContainer}>
             <TouchableOpacity
               style={[
                 styles.toggleButton,
                 mode === "monthly" && styles.activeToggle,
               ]}
-              onPress={() => setMode("monthly")}
+              onPress={() => {
+                setMode("monthly");
+                fetchRankingData(selectedMonth, selectedYear, "monthly");
+              }}
             >
               <Text
                 style={[
@@ -104,7 +160,10 @@ export default function ModeratorRankingScreen({ navigation }) {
                 styles.toggleButton,
                 mode === "yearly" && styles.activeToggle,
               ]}
-              onPress={() => setMode("yearly")}
+              onPress={() => {
+                setMode("yearly");
+                fetchRankingData(null, selectedYear, "yearly");
+              }}
             >
               <Text
                 style={[
@@ -117,6 +176,7 @@ export default function ModeratorRankingScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Filtry */}
           <View style={styles.filterRow}>
             {mode === "monthly" && (
               <TouchableOpacity
@@ -142,36 +202,76 @@ export default function ModeratorRankingScreen({ navigation }) {
               color="#6e4b1f"
               style={{ marginTop: 20 }}
             />
+          ) : noData ? (
+            <Text style={styles.noData}>Brak danych dla tego okresu.</Text>
+          ) : rankingData.length > 0 ? (
+            (() => {
+              let lastTotal = null;
+              let lastRank = 0;
+              let realIndex = 0; // Liczy prawdziwą pozycję z uwzględnieniem remisów
+
+              return rankingData.map((item, index) => {
+                const isSame = item.total === lastTotal;
+                const rank = isSame ? lastRank : ++realIndex;
+
+                if (!isSame) {
+                  lastTotal = item.total;
+                  lastRank = rank;
+                } else {
+                  realIndex++; // też przesuwamy, żeby numeracja była poprawna
+                }
+
+                // Kolorowanie:
+                const isTop3 = rank <= 3;
+                const isNegative = item.total < 0;
+                const highlightColor = isNegative
+                  ? "#c62828" // czerwony
+                  : isTop3
+                  ? "#2e7d32" // zielony
+                  : "#4a2d0f"; // domyślny brąz
+
+                return (
+                  <View key={item.card_id || index} style={styles.rankingBox}>
+                    <Text style={styles.rank}>{rank}.</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.name, { color: highlightColor }]}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.details}>
+                        Służba: {item.service} pkt
+                      </Text>
+                      <Text style={styles.details}>
+                        Zbiórki: {item.meetings} pkt
+                      </Text>
+                    </View>
+                    <Text style={[styles.total, { color: highlightColor }]}>
+                      {item.total}
+                    </Text>
+                  </View>
+                );
+              });
+            })()
           ) : (
-            displayedRanking.map((item, index) => (
-              <View key={item.card_id || index} style={styles.rankingBox}>
-                <Text style={styles.rank}>{index + 1}.</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.details}>Służba: {item.service} pkt</Text>
-                  <Text style={styles.details}>
-                    Zbiórki: {item.meetings} pkt
-                  </Text>
-                </View>
-                <Text style={styles.total}>{item.total}</Text>
-              </View>
-            ))
+            <Text style={{ textAlign: "center", color: "#4a2d0f" }}>
+              Brak danych dla wybranego okresu.
+            </Text>
           )}
         </ScrollView>
 
-        {/* Modale wyboru miesięcy i lat */}
+        {/* Modale wyboru */}
         <Modal visible={showMonthPicker} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {availableMonths.map((m) => (
+              {months.map((m) => (
                 <TouchableOpacity
-                  key={m}
+                  key={m.value}
                   onPress={() => {
-                    setSelectedMonth(m);
+                    setSelectedMonth(m.value);
                     setShowMonthPicker(false);
+                    fetchRankingData(m.value, selectedYear, "monthly");
                   }}
                 >
-                  <Text style={styles.modalOption}>{getMonthLabel(m)}</Text>
+                  <Text style={styles.modalOption}>{m.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -181,12 +281,17 @@ export default function ModeratorRankingScreen({ navigation }) {
         <Modal visible={showYearPicker} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              {availableYears.map((y) => (
+              {years.map((y) => (
                 <TouchableOpacity
                   key={y}
                   onPress={() => {
                     setSelectedYear(y);
                     setShowYearPicker(false);
+                    fetchRankingData(
+                      mode === "monthly" ? selectedMonth : null,
+                      y,
+                      mode
+                    );
                   }}
                 >
                   <Text style={styles.modalOption}>{y}</Text>
@@ -309,5 +414,12 @@ const styles = StyleSheet.create({
     fontSize: RFValue(16),
     color: "#000",
     textAlign: "center",
+  },
+  noData: {
+    textAlign: "center",
+    color: "#4a2d0f",
+    fontSize: RFValue(16),
+    fontStyle: "italic",
+    marginTop: RFValue(20),
   },
 });

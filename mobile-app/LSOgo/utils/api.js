@@ -394,6 +394,27 @@ export const getRankingAll = async () => {
     throw error;
   }
 };
+export const getRankingMonth = async (month, year) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-ranking-month`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ month, year }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
+  return data.monthlyRanking; // zakładamy taki format!
+};
+
+export const getRankingYear = async (year) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-ranking-year`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ year }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
+  return data.yearlyRanking; // zakładamy taki format!
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
