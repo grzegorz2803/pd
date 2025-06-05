@@ -48,7 +48,21 @@ export default function MoreScreen({ navigation }) {
                 source={require("../assets/kielich.png")}
                 style={styles.icon}
               />
-              <Text style={styles.optionText}>Naboeństwa</Text>
+              <Text style={styles.optionText}>Nabozeństwa</Text>
+            </View>
+            <Text style={styles.arrow}>{">"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => navigation.navigate("Raport")}
+          >
+            <View style={styles.optionContent}>
+              <Image
+                source={require("../assets/raporty.png")}
+                style={styles.icon}
+              />
+              <Text style={styles.optionText}>Raporty</Text>
             </View>
             <Text style={styles.arrow}>{">"}</Text>
           </TouchableOpacity>

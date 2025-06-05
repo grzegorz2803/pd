@@ -37,13 +37,13 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Raport")}
+        onPress={() => navigation.navigate("Zbiorki")}
       >
         <Image
-          source={require("../assets/raporty.png")}
+          source={require("../assets/zbiorki.png")}
           style={styles.navIcon}
         />
-        <Text style={styles.navText}>Raporty</Text>
+        <Text style={styles.navText}>Zbiórki</Text>
       </TouchableOpacity>
 
       {/*  */}
