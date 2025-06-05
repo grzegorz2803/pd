@@ -24,6 +24,7 @@ const {
     getNotification,
     deleteNotification,
     sendMessage,
+    getRankingAll,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -210,7 +211,11 @@ router.post("/delete-notification", authenticateToken, async (req, res) => {
 router.post("/send-message",authenticateToken,async (req,res)=>{
     const cardId = req.user.card_id;
     const {subject, message} = req.body;
-    console.log(cardId,subject,message);
     await sendMessage(cardId,subject,message,res);
+})
+router.post("/get-ranking-all",async (req,res)=>{
+    // const cardId = req.user.card_id;
+    const card = '88040314991';
+    await getRankingAll(card,res);
 })
 module.exports = router;

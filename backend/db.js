@@ -986,6 +986,83 @@ async function sendMessage(cardId, subject, message,res){
         return res.status(500).json({ message: "Błąd serwera podczas wysyłania wiadomości." });
     }
 }
+async function getRankingAll(cardId, res) {
+    try {
+        // Krok 1: pobierz id_parish
+        const [userRows] = await pool.execute(
+            `SELECT id_parish FROM users WHERE card_id = ?`,
+            [cardId]
+        );
+
+        if (userRows[0]===undefined) {
+            return res.status(404).json({ message: "Nie znaleziono parafii" });
+        }
+
+        const parishID = userRows[0].id_parish;
+
+        // Ustal aktualny miesiąc i rok
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const year = now.getFullYear().toString();
+
+        const monthlyTable = `${parishID}_${month}_${year}`;
+        const yearlyTable = `${parishID}_${year}`;
+
+        let monthlyRanking = [];
+        let yearlyRanking = [];
+
+        // Krok 2: Ranking miesięczny
+        try {
+            const [monthlyRows] = await pool.execute(
+                `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+         FROM \`${monthlyTable}\` r
+         JOIN users u ON u.card_id = r.card_id
+         ORDER BY r.sum DESC`
+            );
+
+            monthlyRanking = monthlyRows.map((row) => ({
+                name: `${row.first_name} ${row.last_name}`,
+                card_id: row.card_id,
+                service: row.points,
+                meetings: row.points_meating,
+                total: row.sum,
+            }));
+        } catch (err) {
+            console.warn(`Brak tabeli miesięcznej: ${monthlyTable}`);
+        }
+
+        // Krok 3: Ranking roczny
+        try {
+            const [yearlyRows] = await pool.execute(
+                `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+         FROM \`${yearlyTable}\` r
+         JOIN users u ON u.card_id = r.card_id
+         ORDER BY r.sum DESC`
+            );
+
+            yearlyRanking = yearlyRows.map((row) => ({
+                name: `${row.first_name} ${row.last_name}`,
+                card_id: row.card_id,
+                service: row.points,
+                meetings: row.points_meating,
+                total: row.sum,
+            }));
+        } catch (err) {
+            console.warn(`Brak tabeli rocznej: ${yearlyTable}`);
+        }
+
+        return res.status(200).json({
+            current_month: month,
+            current_year: year,
+            monthlyRanking,
+            yearlyRanking,
+        });
+    } catch (error) {
+        console.error("Błąd w getModeratorInitialRanking:", error);
+        return res.status(500).json({ message: "Błąd serwera" });
+    }
+}
+
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1011,4 +1088,5 @@ module.exports = {
     getNotification,
     deleteNotification,
     sendMessage,
+    getRankingAll,
 };
