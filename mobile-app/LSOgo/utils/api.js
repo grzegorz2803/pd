@@ -378,6 +378,22 @@ export const sendMessage = async (subject, message) => {
     throw error;
   }
 };
+export const getRankingAll = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-ranking-all`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania rankingu");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
