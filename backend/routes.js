@@ -213,9 +213,9 @@ router.post("/send-message",authenticateToken,async (req,res)=>{
     const {subject, message} = req.body;
     await sendMessage(cardId,subject,message,res);
 })
-router.post("/get-ranking-all",async (req,res)=>{
-    // const cardId = req.user.card_id;
-    const card = '88040314991';
-    await getRankingAll(card,res);
+router.post("/get-ranking-all",authenticateToken,async (req,res)=>{
+     const cardId = req.user.card_id;
+
+    await getRankingAll(cardId,res);
 })
 module.exports = router;
