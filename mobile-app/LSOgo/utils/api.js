@@ -401,6 +401,7 @@ export const getRankingMonth = async (month, year) => {
     body: JSON.stringify({ month, year }),
   });
   const data = await response.json();
+  console.log(data);
   if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
   return data.monthlyRanking; // zakładamy taki format!
 };

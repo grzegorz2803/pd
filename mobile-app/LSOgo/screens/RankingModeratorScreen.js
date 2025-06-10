@@ -124,6 +124,7 @@ export default function ModeratorRankingScreen({ navigation }) {
       setLoading(false);
     }
   };
+  console.log(rankingData);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
