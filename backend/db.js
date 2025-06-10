@@ -288,7 +288,6 @@ async function updateOrInsertPoints(cardID, points, parID) {
                  WHERE card_id = ?`,
                 [cardID]
             );
-            console.log(rows[0]);
             if (rows[0] !== undefined) {
                 await pool.execute(
                     `UPDATE \`${tableName}\`
@@ -383,7 +382,6 @@ async function getLiturgicalDataWeek() {
         if (rows === undefined) {
             return {message: "Brak danych dla tego dnia"};
         }
-        console.log(dayjs.utc(rows[0].date).tz('Europe/Warsaw').format('DD-MM-YYYY'));
         const groupedByDate = {};
 
         rows.forEach(row => {
@@ -477,7 +475,6 @@ function generateVerificationCode() {
 async function updateEmail(idUser, email, res) {
     try {
         const [rows] = await pool.execute('SELECT id_auth FROM auth WHERE  email = ? AND id_auth !=?', [email, idUser]);
-        console.log(rows[0]);
         if (rows[0] !== undefined) {
             return res.status(409).json({
                 success: false,
@@ -635,7 +632,6 @@ async function getProfilData(cardId, res) {
         const [weekResult] = await pool.execute(`SELECT WEEKOFYEAR(NOW()) AS current_week`);
 
         const currentWeek = weekResult[0].current_week;
-        console.log(currentWeek);
         const [dutyRows] = await pool.execute(`SELECT day_of_week, time
                                                FROM lso_schedules
                                                WHERE user_card_id = ? AND week_number = ?
@@ -1130,8 +1126,6 @@ async function getRankingYear(cardId,year, res){
        WHERE table_schema = DATABASE() AND table_name = ?`,
             [tableName]
         );
-        console.log(tableName);
-        console.log(tableExists);
         if (tableExists[0].count === 0) {
             return res.status(200).json({ yearlyRanking: [] }); // brak danych
         }
