@@ -225,9 +225,9 @@ router.post("/get-ranking-month",authenticateToken,async (req,res)=>{
      const {month,year} = req.body;
     await getRankingMonth(cardId,month,year,res);
 })
-router.post("/get-ranking-year",async (req,res)=>{
-    // const cardId = req.user.card_id;
-    // const year = req.body;
-    await getRankingYear('88040314991',2025,res);
+router.post("/get-ranking-year",authenticateToken,async (req,res)=>{
+     const cardId = req.user.card_id;
+     const year = req.body;
+    await getRankingYear(cardId,year,res);
 })
 module.exports = router;

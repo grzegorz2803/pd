@@ -1095,7 +1095,6 @@ async function getRankingMonth(cardId,month,year,res){
                       JOIN users u ON r.card_id = u.card_id
              ORDER BY r.sum DESC, r.points DESC, r.points_meating DESC`
         );
-console.log(rankingRows);
         return res.status(200).json({ monthlyRanking: rankingRows });
 
     } catch (error) {
