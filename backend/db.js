@@ -1095,7 +1095,14 @@ async function getRankingMonth(cardId,month,year,res){
                       JOIN users u ON r.card_id = u.card_id
              ORDER BY r.sum DESC, r.points DESC, r.points_meating DESC`
         );
-        return res.status(200).json({ monthlyRanking: rankingRows });
+        const formattedRanking = rankingRows.map(row => ({
+            name: `${row.first_name} ${row.last_name}`,
+            card_id: row.card_id,
+            service: row.points,
+            meetings: row.points_meating,
+            total: row.sum,
+        }));
+        return res.status(200).json({ monthlyRanking: formattedRanking });
 
     } catch (error) {
         console.error("Błąd pobierania rankingu miesięcznego:", error);
@@ -1123,6 +1130,8 @@ async function getRankingYear(cardId,year, res){
        WHERE table_schema = DATABASE() AND table_name = ?`,
             [tableName]
         );
+        console.log(tableName);
+        console.log(tableExists);
         if (tableExists[0].count === 0) {
             return res.status(200).json({ yearlyRanking: [] }); // brak danych
         }
@@ -1133,8 +1142,14 @@ async function getRankingYear(cardId,year, res){
              FROM \`${tableName}\` r
                       JOIN users u ON r.card_id = u.card_id
              ORDER BY r.sum DESC, r.points DESC, r.points_meating DESC`);
-
-        return res.status(200).json({ yearlyRanking: rankingRows });
+        const formattedRanking = rankingRows.map(row => ({
+            name: `${row.first_name} ${row.last_name}`,
+            card_id: row.card_id,
+            service: row.points,
+            meetings: row.points_meating,
+            total: row.sum,
+        }));
+        return res.status(200).json({ yearlyRanking: formattedRanking });
 
     } catch (error) {
         console.error("Błąd pobierania rankingu rocznego:", error);

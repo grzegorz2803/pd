@@ -228,6 +228,7 @@ router.post("/get-ranking-month",authenticateToken,async (req,res)=>{
 router.post("/get-ranking-year",authenticateToken,async (req,res)=>{
      const cardId = req.user.card_id;
      const year = req.body;
+     console.log(year);
     await getRankingYear(cardId,year,res);
 })
 module.exports = router;
