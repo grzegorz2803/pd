@@ -1150,6 +1150,41 @@ async function getRankingYear(cardId,year, res){
         return res.status(500).json({ message: "Błąd serwera" });
     }
 }
+async function getRecentReadings(cardId,res){
+    try {
+        // Pobierz parish_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish FROM users WHERE card_id = ?`,
+            [cardId]
+        );
+
+        if (userRow[0]===undefined) {
+            return res.status(404).json({ message: "Nie znaleziono parafii" });
+        }
+
+
+        const parishID = userRow[0].id_parish;
+        const tableName = `\`${parishID}_readings\``;
+
+        const [rows] = await pool.execute(
+            `SELECT 
+          DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
+          TIME_FORMAT(time_read, '%H:%i') AS hour,
+          name_service AS service_name,
+          points
+       FROM ${tableName}
+       WHERE card_id = ?
+       ORDER BY date_read DESC, time_read DESC
+       LIMIT 5`,
+            [cardId]
+        );
+
+        return res.status(200).json({ readings: rows });
+    } catch (error) {
+        console.error("Błąd podczas pobierania odczytów:", error);
+        return res.status(500).json({ message: "Błąd serwera przy pobieraniu odczytów." });
+    }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1178,4 +1213,5 @@ module.exports = {
     getRankingAll,
     getRankingYear,
     getRankingMonth,
+    getRecentReadings,
 };

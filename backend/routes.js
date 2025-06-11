@@ -27,6 +27,7 @@ const {
     getRankingAll,
     getRankingMonth,
     getRankingYear,
+    getRecentReadings,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -226,5 +227,9 @@ router.post("/get-ranking-year",authenticateToken,async (req,res)=>{
      const cardId = req.user.card_id;
      const {year} = req.body;
     await getRankingYear(cardId,year,res);
+})
+router.post("/get-recent-readings",authenticateToken,async (req,res)=>{
+    const {card_id} = req.body;
+    await getRecentReadings(card_id,res);
 })
 module.exports = router;
