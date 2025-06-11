@@ -285,10 +285,29 @@ export default function ModeratorRankingScreen({ navigation }) {
                           <Text style={styles.details}>Brak odczytów.</Text>
                         ) : (
                           readings.map((r, i) => (
-                            <View key={i} style={{ paddingVertical: 2 }}>
+                            <View
+                              key={i}
+                              style={{
+                                paddingVertical: 6,
+                                borderBottomWidth: 1,
+                                borderBottomColor: "#c4a46d",
+                              }}
+                            >
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Text style={styles.details}>
+                                  {r.date} godz. {r.hour}
+                                </Text>
+                                <Text style={styles.details}>
+                                  {r.points} pkt
+                                </Text>
+                              </View>
                               <Text style={styles.details}>
-                                {r.date} godz. {r.hour} - {r.service_name} (
-                                {r.points} pkt)
+                                {r.service_name}
                               </Text>
                             </View>
                           ))
@@ -471,7 +490,6 @@ const styles = StyleSheet.create({
     marginTop: RFValue(20),
   },
   readingBox: {
-    backgroundColor: "#fffae6",
     paddingHorizontal: RFValue(10),
     paddingBottom: RFValue(10),
     borderBottomColor: "#c4a46d",
