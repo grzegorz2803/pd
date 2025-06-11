@@ -416,6 +416,16 @@ export const getRankingYear = async (year) => {
   if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
   return data.yearlyRanking; // zakładamy taki format!
 };
+export const getReadingsByCardId = async (cardId) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-recent-readings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_id: cardId }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,12 @@ import {
 import BottomNavModerator from "../components/BottomNavModerator";
 import { RFValue } from "react-native-responsive-fontsize";
 import { AuthContext } from "../context/AuthContext";
-import { getRankingMonth, getRankingYear, getRankingAll } from "../utils/api";
+import {
+  getRankingMonth,
+  getRankingYear,
+  getRankingAll,
+  getReadingsByCardId,
+} from "../utils/api";
 
 export default function ModeratorRankingScreen({ navigation }) {
   const { loggedIn } = useContext(AuthContext);
@@ -28,6 +33,8 @@ export default function ModeratorRankingScreen({ navigation }) {
   const [rankingData, setRankingData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [yearlyData, setYearlyData] = useState([]);
+  const [expandedCardId, setExpandedCardId] = useState(null);
+  const [readingsByUser, setReadingsByUser] = useState({});
 
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -124,7 +131,26 @@ export default function ModeratorRankingScreen({ navigation }) {
       setLoading(false);
     }
   };
-  console.log(rankingData);
+  const fetchRecentReadings = useCallback(
+    async (cardId) => {
+      if (readingsByUser[cardId]) {
+        setExpandedCardId(expandedCardId === cardId ? null : cardId);
+        return;
+      }
+      try {
+        const data = await getReadingsByCardId(cardId);
+
+        setReadingsByUser((prev) => ({
+          ...prev,
+          [cardId]: data.readings || [],
+        }));
+        setExpandedCardId(cardId);
+      } catch (err) {
+        console.error("Bład pobierania odczytów:", err);
+      }
+    },
+    [expandedCardId, readingsByUser]
+  );
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -210,44 +236,65 @@ export default function ModeratorRankingScreen({ navigation }) {
               let lastTotal = null;
               let lastRank = 0;
               let realIndex = 0; // Liczy prawdziwą pozycję z uwzględnieniem remisów
-
               return rankingData.map((item, index) => {
                 const isSame = item.total === lastTotal;
                 const rank = isSame ? lastRank : ++realIndex;
-
                 if (!isSame) {
                   lastTotal = item.total;
                   lastRank = rank;
                 } else {
-                  realIndex++; // też przesuwamy, żeby numeracja była poprawna
+                  realIndex++;
                 }
 
-                // Kolorowanie:
                 const isTop3 = rank <= 3;
                 const isNegative = item.total < 0;
                 const highlightColor = isNegative
-                  ? "#c62828" // czerwony
+                  ? "#c62828"
                   : isTop3
-                  ? "#2e7d32" // zielony
-                  : "#4a2d0f"; // domyślny brąz
+                  ? "#2e7d32"
+                  : "#4a2d0f";
+                const isExpanded = expandedCardId === item.card_id;
+                const readings = readingsByUser[item.card_id] || [];
 
                 return (
-                  <View key={item.card_id || index} style={styles.rankingBox}>
-                    <Text style={styles.rank}>{rank}.</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.name, { color: highlightColor }]}>
-                        {item.name}
+                  <View key={item.card_id || index}>
+                    <TouchableOpacity
+                      onPress={() => fetchRecentReadings(item.card_id)}
+                      style={styles.rankingBox}
+                    >
+                      <Text style={styles.rank}>{rank}.</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.name, { color: highlightColor }]}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.details}>
+                          Służba: {item.service} pkt
+                        </Text>
+                        <Text style={styles.details}>
+                          Zbiórki: {item.meetings} pkt
+                        </Text>
+                      </View>
+                      <Text style={[styles.total, { color: highlightColor }]}>
+                        {item.total}
                       </Text>
-                      <Text style={styles.details}>
-                        Służba: {item.service} pkt
-                      </Text>
-                      <Text style={styles.details}>
-                        Zbiórki: {item.meetings} pkt
-                      </Text>
-                    </View>
-                    <Text style={[styles.total, { color: highlightColor }]}>
-                      {item.total}
-                    </Text>
+                    </TouchableOpacity>
+
+                    {isExpanded && (
+                      <View style={styles.readingBox}>
+                        {readings.length === 0 ? (
+                          <Text style={styles.details}>Brak odczytów.</Text>
+                        ) : (
+                          readings.map((r, i) => (
+                            <View key={i} style={{ paddingVertical: 2 }}>
+                              <Text style={styles.details}>
+                                {r.date} godz. {r.hour} - {r.service_name} (
+                                {r.points} pkt)
+                              </Text>
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    )}
                   </View>
                 );
               });
@@ -422,5 +469,12 @@ const styles = StyleSheet.create({
     fontSize: RFValue(16),
     fontStyle: "italic",
     marginTop: RFValue(20),
+  },
+  readingBox: {
+    backgroundColor: "#fffae6",
+    paddingHorizontal: RFValue(10),
+    paddingBottom: RFValue(10),
+    borderBottomColor: "#c4a46d",
+    borderBottomWidth: 1,
   },
 });
