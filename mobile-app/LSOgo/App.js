@@ -15,6 +15,9 @@ import MoreUserScreen from "./screens/MoreUserScreen";
 import RankingScreen from "./screens/RankingScreen";
 import HistoryScreen from "./screens/HistoryScreen";
 import NotificationsScreen from "./screens/NotificationsScreen";
+import ContactScreen from "./screens/ContactScreen";
+import MoreModeratorScreen from "./screens/MoreModeratorScreen";
+import RankingModeratorScreen from "./screens/RankingModeratorScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +47,12 @@ export default function App() {
             <Stack.Screen name="Ranking" component={RankingScreen} />
             <Stack.Screen name="History" component={HistoryScreen} />
             <Stack.Screen name="Notification" component={NotificationsScreen} />
+            <Stack.Screen name="Contact" component={ContactScreen} />
+            <Stack.Screen name="RankingM" component={RankingModeratorScreen} />
+            <Stack.Screen
+              name="MoreModerator"
+              component={MoreModeratorScreen}
+            />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

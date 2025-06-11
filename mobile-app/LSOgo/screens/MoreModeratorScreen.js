@@ -14,7 +14,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
 import { RFValue } from "react-native-responsive-fontsize";
 import { Dimensions } from "react-native";
-import BottomNavUser from "../components/BottomNavUser";
+import BottomNavModerator from "../components/BottomNavModerator";
 export default function MoreScreen({ navigation }) {
   const { loggedIn, logout } = useContext(AuthContext);
   return (
@@ -26,10 +26,50 @@ export default function MoreScreen({ navigation }) {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.contentWrapper}>
           <Text style={styles.title}>Więcej opcji</Text>
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => navigation.navigate("Harmonogramy")}
+          >
+            <View style={styles.optionContent}>
+              <Image
+                source={require("../assets/harm.png")}
+                style={styles.icon}
+              />
+              <Text style={styles.optionText}>Harmonogramy</Text>
+            </View>
+            <Text style={styles.arrow}>{">"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => navigation.navigate("Service")}
+          >
+            <View style={styles.optionContent}>
+              <Image
+                source={require("../assets/kielich.png")}
+                style={styles.icon}
+              />
+              <Text style={styles.optionText}>Nabozeństwa</Text>
+            </View>
+            <Text style={styles.arrow}>{">"}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Notification")}
+            onPress={() => navigation.navigate("Raport")}
+          >
+            <View style={styles.optionContent}>
+              <Image
+                source={require("../assets/raporty.png")}
+                style={styles.icon}
+              />
+              <Text style={styles.optionText}>Raporty</Text>
+            </View>
+            <Text style={styles.arrow}>{">"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.option}
+            onPress={() => navigation.navigate("NotificationM")}
           >
             <View style={styles.optionContent}>
               <Image
@@ -43,7 +83,7 @@ export default function MoreScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Contact")}
+            onPress={() => navigation.navigate("ContactM")}
           >
             <View style={styles.optionContent}>
               <Image
@@ -77,7 +117,7 @@ export default function MoreScreen({ navigation }) {
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
-      {loggedIn && <BottomNavUser navigation={navigation} />}
+      {loggedIn && <BottomNavModerator navigation={navigation} />}
     </ImageBackground>
   );
 }

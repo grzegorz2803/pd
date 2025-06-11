@@ -361,6 +361,71 @@ export const deleteNotification = async (type, id) => {
     throw error;
   }
 };
+export const sendMessage = async (subject, message) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/send-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ subject, message }),
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd wysyłania wiadomości");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getRankingAll = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-ranking-all`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania rankingu");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getRankingMonth = async (month, year) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-ranking-month`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ month, year }),
+  });
+  const data = await response.json();
+  console.log(data);
+  if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
+  return data.monthlyRanking; // zakładamy taki format!
+};
+
+export const getRankingYear = async (year) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-ranking-year`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ year }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "Błąd pobierania danych");
+  return data.yearlyRanking; // zakładamy taki format!
+};
+export const getReadingsByCardId = async (cardId) => {
+  const response = await fetchWithAuth(`${BASE_URL}/get-recent-readings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ card_id: cardId }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message);
+  return data;
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

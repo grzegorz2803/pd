@@ -17,20 +17,43 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={async () => {
-          const result = await logout();
-          if (!result) {
-            return;
-          } else {
-            navigation.replace("Login");
-          }
-        }}
+        onPress={() => navigation.navigate("RankingM")}
       >
         <Image
-          source={require("../assets/logout.png")}
+          source={require("../assets/ranking.png")}
           style={styles.navIcon}
         />
-        <Text style={styles.navText}>Log out</Text>
+        <Text style={styles.navText}>Rankingi</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("HistoryM")}
+      >
+        <Image
+          source={require("../assets/history.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Historia</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Zbiorki")}
+      >
+        <Image
+          source={require("../assets/zbiorki.png")}
+          style={styles.navIcon}
+        />
+        <Text style={styles.navText}>Zbiórki</Text>
+      </TouchableOpacity>
+
+      {/*  */}
+      {/*  */}
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("MoreModerator")}
+      >
+        <Image source={require("../assets/more.png")} style={styles.navIcon} />
+        <Text style={styles.navText}>Więcej</Text>
       </TouchableOpacity>
     </View>
   );
