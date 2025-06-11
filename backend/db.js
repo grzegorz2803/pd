@@ -343,7 +343,6 @@ async function updateOrInsertPoints(cardID, points, parID) {
                  WHERE card_id = ?`,
         [cardID]
       );
-      console.log(rows[0]);
       if (rows[0] !== undefined) {
         await pool.execute(
           `UPDATE \`${tableName}\`
@@ -437,9 +436,6 @@ async function getLiturgicalDataWeek() {
     if (rows === undefined) {
       return { message: "Brak danych dla tego dnia" };
     }
-    console.log(
-      dayjs.utc(rows[0].date).tz("Europe/Warsaw").format("DD-MM-YYYY")
-    );
     const groupedByDate = {};
 
     rows.forEach((row) => {
@@ -553,7 +549,6 @@ async function updateEmail(idUser, email, res) {
       "SELECT id_auth FROM auth WHERE  email = ? AND id_auth !=?",
       [email, idUser]
     );
-    console.log(rows[0]);
     if (rows[0] !== undefined) {
       return res.status(409).json({
         success: false,
@@ -760,7 +755,6 @@ async function getProfilData(cardId, res) {
     );
 
     const currentWeek = weekResult[0].current_week;
-    console.log(currentWeek);
     const [dutyRows] = await pool.execute(
       `SELECT day_of_week, time
                                                FROM lso_schedules
@@ -1054,11 +1048,9 @@ async function deleteNotification(cardId, type, id, res) {
           [id, cardId]
         );
         if (result.affectedRows === 0) {
-          return res
-            .status(404)
-            .json({
-              message: "Usprawiedliwienie nie znalezione lub brak uprawnień.",
-            });
+          return res.status(404).json({
+            message: "Usprawiedliwienie nie znalezione lub brak uprawnień.",
+          });
         }
         return res.status(200).json({ message: "Usprawiedliwienie ukryte." });
       }
@@ -1114,7 +1106,235 @@ async function deleteNotification(cardId, type, id, res) {
       .json({ message: "Błąd serwera przy ukrywaniu powiadomienia." });
   }
 }
+async function sendMessage(cardId, subject, message, res) {
+  try {
+    if (!subject || !message) {
+      return res
+        .status(400)
+        .json({ message: "Temat i treść wiadomości są wymagane." });
+    }
 
+    const [result] = await pool.execute(
+      `INSERT INTO messages 
+        (sender_id, recipient_id, subject, body, is_reply, hidden_for_user, hidden_for_moderator)
+       VALUES (?, 'MODERATOR', ?, ?, 0, 0, 0)`,
+      [cardId, subject.trim(), message.trim()]
+    );
+
+    if (result.affectedRows === 1) {
+      return res.status(200).json({ message: "Wiadomość została wysłana." });
+    } else {
+      return res
+        .status(500)
+        .json({ message: "Nie udało się zapisać wiadomości." });
+    }
+  } catch (error) {
+    console.error("Błąd przy zapisie wiadomości:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera podczas wysyłania wiadomości." });
+  }
+}
+async function getRankingAll(cardId, res) {
+  try {
+    // Krok 1: pobierz id_parish
+    const [userRows] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRows[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRows[0].id_parish;
+
+    // Ustal aktualny miesiąc i rok
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear().toString();
+
+    const monthlyTable = `${parishID}_${month}_${year}`;
+    const yearlyTable = `${parishID}_${year}`;
+
+    let monthlyRanking = [];
+    let yearlyRanking = [];
+
+    // Krok 2: Ranking miesięczny
+    try {
+      const [monthlyRows] = await pool.execute(
+        `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+         FROM \`${monthlyTable}\` r
+         JOIN users u ON u.card_id = r.card_id
+         ORDER BY r.sum DESC`
+      );
+
+      monthlyRanking = monthlyRows.map((row) => ({
+        name: `${row.first_name} ${row.last_name}`,
+        card_id: row.card_id,
+        service: row.points,
+        meetings: row.points_meating,
+        total: row.sum,
+      }));
+    } catch (err) {
+      console.warn(`Brak tabeli miesięcznej: ${monthlyTable}`);
+    }
+
+    // Krok 3: Ranking roczny
+    try {
+      const [yearlyRows] = await pool.execute(
+        `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+         FROM \`${yearlyTable}\` r
+         JOIN users u ON u.card_id = r.card_id
+         ORDER BY r.sum DESC`
+      );
+
+      yearlyRanking = yearlyRows.map((row) => ({
+        name: `${row.first_name} ${row.last_name}`,
+        card_id: row.card_id,
+        service: row.points,
+        meetings: row.points_meating,
+        total: row.sum,
+      }));
+    } catch (err) {
+      console.warn(`Brak tabeli rocznej: ${yearlyTable}`);
+    }
+
+    return res.status(200).json({
+      current_month: month,
+      current_year: year,
+      monthlyRanking,
+      yearlyRanking,
+    });
+  } catch (error) {
+    console.error("Błąd w getModeratorInitialRanking:", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+async function getRankingMonth(cardId, month, year, res) {
+  try {
+    // Pobierz parish_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+    const tableName = `${parishID}_${month}_${year}`;
+    // Sprawdź, czy tabela istnieje
+    const [tableExists] = await pool.execute(
+      `SELECT COUNT(*) AS count FROM information_schema.tables 
+       WHERE table_schema = DATABASE() AND table_name = ?`,
+      [tableName]
+    );
+    if (tableExists[0].count === 0) {
+      return res.status(200).json({ monthlyRanking: [] }); // brak danych
+    }
+
+    // Pobierz dane z tabeli rankingowej
+    const [rankingRows] = await pool.execute(
+      `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+             FROM \`${tableName}\` r
+                      JOIN users u ON r.card_id = u.card_id
+             ORDER BY r.sum DESC, r.points DESC, r.points_meating DESC`
+    );
+    const formattedRanking = rankingRows.map((row) => ({
+      name: `${row.first_name} ${row.last_name}`,
+      card_id: row.card_id,
+      service: row.points,
+      meetings: row.points_meating,
+      total: row.sum,
+    }));
+    return res.status(200).json({ monthlyRanking: formattedRanking });
+  } catch (error) {
+    console.error("Błąd pobierania rankingu miesięcznego:", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+async function getRankingYear(cardId, year, res) {
+  try {
+    // Pobierz parish_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+    const tableName = `${parishID}_${year}`;
+    // Sprawdź, czy tabela istnieje
+    const [tableExists] = await pool.execute(
+      `SELECT COUNT(*) AS count FROM information_schema.tables 
+       WHERE table_schema = DATABASE() AND table_name = ?`,
+      [tableName]
+    );
+    if (tableExists[0].count === 0) {
+      return res.status(200).json({ yearlyRanking: [] }); // brak danych
+    }
+
+    // Pobierz dane z tabeli
+    const [rankingRows] = await pool.execute(
+      `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
+             FROM \`${tableName}\` r
+                      JOIN users u ON r.card_id = u.card_id
+             ORDER BY r.sum DESC, r.points DESC, r.points_meating DESC`
+    );
+    const formattedRanking = rankingRows.map((row) => ({
+      name: `${row.first_name} ${row.last_name}`,
+      card_id: row.card_id,
+      service: row.points,
+      meetings: row.points_meating,
+      total: row.sum,
+    }));
+    return res.status(200).json({ yearlyRanking: formattedRanking });
+  } catch (error) {
+    console.error("Błąd pobierania rankingu rocznego:", error);
+    return res.status(500).json({ message: "Błąd serwera" });
+  }
+}
+async function getRecentReadings(cardId, res) {
+  try {
+    // Pobierz parish_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+    const tableName = `\`${parishID}_readings\``;
+
+    const [rows] = await pool.execute(
+      `SELECT 
+          DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
+          TIME_FORMAT(time_read, '%H:%i') AS hour,
+          name_service AS service_name,
+          points
+       FROM ${tableName}
+       WHERE card_id = ?
+       ORDER BY date_read DESC, time_read DESC
+       LIMIT 5`,
+      [cardId]
+    );
+
+    return res.status(200).json({ readings: rows });
+  } catch (error) {
+    console.error("Błąd podczas pobierania odczytów:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy pobieraniu odczytów." });
+  }
+}
 module.exports = {
   getUserByCardIdAndIdPar,
   getServicesByTimeStamp,
@@ -1139,4 +1359,9 @@ module.exports = {
   sendJustificationText,
   getNotification,
   deleteNotification,
+  sendMessage,
+  getRankingAll,
+  getRankingYear,
+  getRankingMonth,
+  getRecentReadings,
 };

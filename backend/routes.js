@@ -23,6 +23,11 @@ const {
   sendJustificationText,
   getNotification,
   deleteNotification,
+  sendMessage,
+  getRankingAll,
+  getRankingMonth,
+  getRankingYear,
+  getRecentReadings,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
@@ -54,7 +59,6 @@ router.get("/about/:version", async (req, res) => {
 router.post("/data", async (req, res) => {
   try {
     const { card_id, timestamp, id_par } = req.body;
-    console.log(card_id, timestamp, id_par);
     if (await checkDatabaseConnection()) {
       const person = await getUserByCardIdAndIdPar(card_id, id_par);
       if (person !== null) {
@@ -122,7 +126,6 @@ router.post("/data", async (req, res) => {
       res.status(503).json({ name: "Brak połączenia z bazą danych" });
     }
   } catch (error) {
-    //  console.error("Błąd zapytania do bazy: ", error);
     res.status(500).json({ error: "Błąd serwera" });
     console.log("Rzucono wyjątek");
   }
@@ -179,7 +182,6 @@ router.post("/refresh-token", async (req, res) => {
   if (!refreshToken) {
     return res.status(400).json({ message: "Brak refresh tokena" });
   }
-  console.log("wystawiamy nowy token jwt");
   await refreshTokenF(refreshToken, appType, res);
 });
 router.post("/get-profil-data", authenticateToken, async (req, res) => {
@@ -215,5 +217,29 @@ router.post("/delete-notification", authenticateToken, async (req, res) => {
   }
 
   await deleteNotification(cardId, type, id, res);
+});
+router.post("/send-message", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { subject, message } = req.body;
+  await sendMessage(cardId, subject, message, res);
+});
+router.post("/get-ranking-all", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+
+  await getRankingAll(cardId, res);
+});
+router.post("/get-ranking-month", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { month, year } = req.body;
+  await getRankingMonth(cardId, month, year, res);
+});
+router.post("/get-ranking-year", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { year } = req.body;
+  await getRankingYear(cardId, year, res);
+});
+router.post("/get-recent-readings", authenticateToken, async (req, res) => {
+  const { card_id } = req.body;
+  await getRecentReadings(card_id, res);
 });
 module.exports = router;
