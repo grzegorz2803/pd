@@ -13,6 +13,7 @@ import {
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import { getUsersForMeating } from "../utils/api";
+import { submitMeatingResults } from "../utils/api";
 
 const STATUS = {
   OBECNY: "obecny",
