@@ -29,6 +29,8 @@ const {
     getRankingYear,
     getRecentReadings,
   getUsersForMeating,
+    saveMeatingResults,
+
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -237,10 +239,9 @@ router.post("/get-users-for-meating",authenticateToken,async (req,res)=>{
    const cardId = req.user.card_id;
   await getUsersForMeating(cardId,res);
 })
-router.post("/submit-meating-result",authenticateToken,async (req,res)=>{
+router.post("/submit-meating-results",authenticateToken,async (req,res)=>{
+    const cardId = req.user.card_id;
     const {results} = req.body;
-    console.log(results);
-    return res.status(200).json({message: "tak jesrt"});
-    // await getUsersForMeating(results,res);
+     await saveMeatingResults(cardId,results,res);
 })
 module.exports = router;
