@@ -237,4 +237,10 @@ router.post("/get-users-for-meating",authenticateToken,async (req,res)=>{
    const cardId = req.user.card_id;
   await getUsersForMeating(cardId,res);
 })
+router.post("/submit-meating-result",authenticateToken,async (req,res)=>{
+    const {results} = req.body;
+    console.log(results);
+    return res.status(200).json({message: "tak jesrt"});
+    // await getUsersForMeating(results,res);
+})
 module.exports = router;
