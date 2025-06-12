@@ -1335,6 +1335,126 @@ async function getRecentReadings(cardId, res) {
       .json({ message: "Błąd serwera przy pobieraniu odczytów." });
   }
 }
+async function getUsersForMeating(cardId, res) {
+  try {
+    const [userRow] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+
+    const [usersRows] = await pool.execute(
+      `SELECT card_id, first_name,last_name FROM users WHERE id_parish=?`,
+      [parishID]
+    );
+    if (usersRows[0] === undefined) {
+      return res.status(404).json({ message: "Brak użytkowników" });
+    }
+    return res.status(200).json({ users: usersRows });
+  } catch (error) {
+    console.error("Błąd podczas pobierania userów", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy pobieraniu userów" });
+  }
+}
+async function saveMeatingResults(cardId, results, res) {
+  try {
+    // Pobierz parish_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+    const tableName = `${parishID}_readings`;
+    const insertValues = results
+      .map(() => "(?, NOW(), NOW(), ?, NOW(), ?)")
+      .join(", ");
+
+    const insertParams = [];
+    results.forEach((entry) => {
+      insertParams.push(entry.card_id, "Zbiórka", entry.points);
+    });
+
+    const insertQuery = `
+      INSERT INTO \`${tableName}\`
+        (card_id, date_read, time_read, name_service, time_service, points)
+      VALUES ${insertValues}
+    `;
+
+    await pool.execute(insertQuery, insertParams);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+
+    const monthlyTable = `${parishID}_${month}_${year}`;
+    const yearlyTable = `${parishID}_${year}`;
+
+    for (const entry of results) {
+      const { card_id, points } = entry;
+
+      // --- AKTUALIZACJA TABELI MIESIĘCZNEJ ---
+      const [monthlyExists] = await pool.execute(
+        `SELECT 1 FROM \`${monthlyTable}\` WHERE card_id = ? LIMIT 1`,
+        [card_id]
+      );
+
+      if (monthlyExists.length > 0) {
+        await pool.execute(
+          `UPDATE \`${monthlyTable}\`
+       SET points_meating = points_meating + ?
+       WHERE card_id = ?`,
+          [points, card_id]
+        );
+      } else {
+        await pool.execute(
+          `INSERT INTO \`${monthlyTable}\` (card_id, points, points_meating)
+       VALUES (?, 0, ?)`,
+          [card_id, points]
+        );
+      }
+
+      // --- AKTUALIZACJA TABELI ROCZNEJ ---
+      const [yearlyExists] = await pool.execute(
+        `SELECT 1 FROM \`${yearlyTable}\` WHERE card_id = ? LIMIT 1`,
+        [card_id]
+      );
+
+      if (yearlyExists.length > 0) {
+        await pool.execute(
+          `UPDATE \`${yearlyTable}\`
+       SET points_meating = points_meating + ?
+       WHERE card_id = ?`,
+          [points, card_id]
+        );
+      } else {
+        await pool.execute(
+          `INSERT INTO \`${yearlyTable}\` (card_id, points, points_meating)
+       VALUES (?, 0, ?)`,
+          [card_id, points]
+        );
+      }
+    }
+    return res.status(200).json({ message: "Zbiórka zapisana pomyślnie" });
+  } catch (error) {
+    console.error("Błąd podczas zapisu zbiórki", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera przy zapisywaniu zbiórki " });
+  }
+}
 module.exports = {
   getUserByCardIdAndIdPar,
   getServicesByTimeStamp,
@@ -1364,4 +1484,6 @@ module.exports = {
   getRankingYear,
   getRankingMonth,
   getRecentReadings,
+  getUsersForMeating,
+  saveMeatingResults,
 };
