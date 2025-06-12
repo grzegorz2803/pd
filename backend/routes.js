@@ -233,9 +233,8 @@ router.post("/get-recent-readings",authenticateToken,async (req,res)=>{
     const {card_id} = req.body;
     await getRecentReadings(card_id,res);
 })
-router.post("/get-users-for-meating",async (req,res)=>{
-  // const cardId = req.user.card_id;
-  const cardId = '88040314991';
+router.post("/get-users-for-meating",authenticateToken,async (req,res)=>{
+   const cardId = req.user.card_id;
   await getUsersForMeating(cardId,res);
 })
 module.exports = router;
