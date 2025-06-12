@@ -28,6 +28,7 @@ const {
     getRankingMonth,
     getRankingYear,
     getRecentReadings,
+  getUsersForMeating,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -231,5 +232,10 @@ router.post("/get-ranking-year",authenticateToken,async (req,res)=>{
 router.post("/get-recent-readings",authenticateToken,async (req,res)=>{
     const {card_id} = req.body;
     await getRecentReadings(card_id,res);
+})
+router.post("/get-users-for-meating",async (req,res)=>{
+  // const cardId = req.user.card_id;
+  const cardId = '88040314991';
+  await getUsersForMeating(cardId,res);
 })
 module.exports = router;

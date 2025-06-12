@@ -1185,6 +1185,32 @@ async function getRecentReadings(cardId,res){
         return res.status(500).json({ message: "Błąd serwera przy pobieraniu odczytów." });
     }
 }
+async function getUsersForMeating(cardId,res){
+  try {
+    const [userRow] = await pool.execute(
+        `SELECT id_parish FROM users WHERE card_id = ?`,
+        [cardId]
+    );
+
+    if (userRow[0]===undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+
+    const parishID = userRow[0].id_parish;
+
+    const [usersRows] = await pool.execute(
+        `SELECT card_id, first_name,last_name FROM users WHERE id_parish=?`,[parishID]
+    );
+    if(usersRows[0]===undefined){
+      return  res.status(404).json({message: "Brak użytkowników"});
+    }
+    return res.status(200).json({users: usersRows});
+  }catch (error) {
+    console.error("Błąd podczas pobierania userów", error);
+    return res.status(500).json({ message: "Błąd serwera przy pobieraniu userów" });
+  }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1214,4 +1240,5 @@ module.exports = {
     getRankingYear,
     getRankingMonth,
     getRecentReadings,
+  getUsersForMeating
 };
