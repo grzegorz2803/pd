@@ -37,7 +37,7 @@ export default function BottomNavGuest({ navigation }) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Zbiorki")}
+        onPress={() => navigation.navigate("Meating")}
       >
         <Image
           source={require("../assets/zbiorki.png")}

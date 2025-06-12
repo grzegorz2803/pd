@@ -18,6 +18,7 @@ import NotificationsScreen from "./screens/NotificationsScreen";
 import ContactScreen from "./screens/ContactScreen";
 import MoreModeratorScreen from "./screens/MoreModeratorScreen";
 import RankingModeratorScreen from "./screens/RankingModeratorScreen";
+import MeatingScreen from "./screens/MeatingScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -49,6 +50,7 @@ export default function App() {
             <Stack.Screen name="Notification" component={NotificationsScreen} />
             <Stack.Screen name="Contact" component={ContactScreen} />
             <Stack.Screen name="RankingM" component={RankingModeratorScreen} />
+            <Stack.Screen name="Meating" component={MeatingScreen} />
             <Stack.Screen
               name="MoreModerator"
               component={MoreModeratorScreen}
