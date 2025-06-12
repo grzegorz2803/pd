@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
-
+import { getUsersForMeating } from "../utils/api";
 const staticUsers = [
   { id: 1, name: "Jan Kowalski" },
   { id: 2, name: "Adam Nowak" },
@@ -28,11 +28,44 @@ const STATUS = {
 export default function MeatingScreen({ navigation }) {
   const [statuses, setStatuses] = useState({});
   const [points, setPoints] = useState("0");
+  const [users, setUsers] = useState([]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await getUsersForMeating();
+        setUsers(data.users || []);
+      } catch (error) {
+        Alert.alert("Błąd", "Nie udało się pobrać użytkowników");
+        console.error(error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleStatusSelect = (userId, status) => {
     setStatuses((prev) => ({ ...prev, [userId]: status }));
   };
+  const handleSave = () => {
+    const value = parseInt(points);
+    if (isNaN(value)) {
+      Alert.alert("Błąd", "Wprowadź poprawną liczbę punktów");
+      return;
+    }
 
+    const results = users.map((user) => {
+      const status = statuses[user.card_id];
+      let score = 0;
+      if (status === STATUS.OBECNY) score = value;
+      else if (status === STATUS.NIEOBECNY) score = -value;
+      return {
+        card_id: user.card_id,
+        status: status || null,
+        points: score,
+      };
+    });
+
+    console.log("Zapisane dane:", results);
+  };
   return (
     <ImageBackground
       source={require("../assets/background.png")}
