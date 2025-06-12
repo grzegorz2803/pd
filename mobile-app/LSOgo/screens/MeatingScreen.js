@@ -8,16 +8,11 @@ import {
   StyleSheet,
   TextInput,
   ImageBackground,
+  Alert,
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import { getUsersForMeating } from "../utils/api";
-const staticUsers = [
-  { id: 1, name: "Jan Kowalski" },
-  { id: 2, name: "Adam Nowak" },
-  { id: 3, name: "Krzysztof Wiśniowski" },
-  { id: 4, name: "Tomasz Zieliński" },
-];
 
 const STATUS = {
   OBECNY: "obecny",
@@ -26,9 +21,10 @@ const STATUS = {
 };
 
 export default function MeatingScreen({ navigation }) {
-  const [statuses, setStatuses] = useState({});
-  const [points, setPoints] = useState("0");
   const [users, setUsers] = useState([]);
+  const [statuses, setStatuses] = useState({});
+  const [points, setPoints] = useState("10");
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -45,10 +41,20 @@ export default function MeatingScreen({ navigation }) {
   const handleStatusSelect = (userId, status) => {
     setStatuses((prev) => ({ ...prev, [userId]: status }));
   };
-  const handleSave = () => {
+
+  const handleSave = async () => {
     const value = parseInt(points);
     if (isNaN(value)) {
       Alert.alert("Błąd", "Wprowadź poprawną liczbę punktów");
+      return;
+    }
+
+    const incomplete = users.some((user) => !statuses[user.card_id]);
+    if (incomplete) {
+      Alert.alert(
+        "Błąd",
+        "Wybierz status dla wszystkich uczestników przed zapisaniem"
+      );
       return;
     }
 
@@ -59,13 +65,22 @@ export default function MeatingScreen({ navigation }) {
       else if (status === STATUS.NIEOBECNY) score = -value;
       return {
         card_id: user.card_id,
-        status: status || null,
+        status: status,
         points: score,
       };
     });
 
-    console.log("Zapisane dane:", results);
+    try {
+      await submitMeatingResults(results);
+      Alert.alert("Sukces", "Dane zostały zapisane");
+      setStatuses({});
+      setPoints("10");
+    } catch (error) {
+      console.error("Błąd zapisu:", error);
+      Alert.alert("Błąd", "Nie udało się zapisać danych");
+    }
   };
+
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -85,19 +100,21 @@ export default function MeatingScreen({ navigation }) {
             <Text style={styles.headerCell}>N.ob.</Text>
           </View>
 
-          {staticUsers.map((user) => (
-            <View key={user.id} style={styles.userRow}>
-              <Text style={[styles.name, { flex: 3 }]}>{user.name}</Text>
+          {users.map((user) => (
+            <View key={user.card_id} style={styles.userRow}>
+              <Text style={[styles.name, { flex: 3 }]}>
+                {user.first_name} {user.last_name}
+              </Text>
               {[STATUS.OBECNY, STATUS.USPRAWIEDLIWIONY, STATUS.NIEOBECNY].map(
                 (statusKey) => (
                   <TouchableOpacity
                     key={statusKey}
                     style={[
                       styles.circle,
-                      statuses[user.id] === statusKey &&
+                      statuses[user.card_id] === statusKey &&
                         styles[`${statusKey}Circle`],
                     ]}
-                    onPress={() => handleStatusSelect(user.id, statusKey)}
+                    onPress={() => handleStatusSelect(user.card_id, statusKey)}
                   />
                 )
               )}
@@ -114,7 +131,7 @@ export default function MeatingScreen({ navigation }) {
             />
           </View>
 
-          <TouchableOpacity style={styles.saveButton}>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Zapisz</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -150,6 +167,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#4a2d0f",
     fontSize: RFValue(14),
+    textAlign: "center",
   },
   userRow: {
     flexDirection: "row",

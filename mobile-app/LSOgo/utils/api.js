@@ -442,6 +442,26 @@ export const getUsersForMeating = async () => {
     throw error;
   }
 };
+export const submitMeatingResults = async (results) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/submit-meating-results`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ results }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd zapisu wyników zbiórki");
+    }
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
