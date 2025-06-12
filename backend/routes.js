@@ -30,6 +30,7 @@ const {
     getRecentReadings,
   getUsersForMeating,
     saveMeatingResults,
+  getScheduleData,
 
 } = require('./db')
 const {log} = require("debug");
@@ -244,4 +245,15 @@ router.post("/submit-meating-results",authenticateToken,async (req,res)=>{
     const {results} = req.body;
      await saveMeatingResults(cardId,results,res);
 })
+router.post('/get-schedule-data', async (req, res) => {
+  const { card_id } = req.body;
+  try {
+    const results = await getScheduleData(card_id);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Błąd pobierania danych do harmonogramu:", error);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
+
 module.exports = router;

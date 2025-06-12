@@ -1303,6 +1303,30 @@ async function saveMeatingResults(cardId,results, res){
     }
 
 }
+async function getScheduleData(cardId) {
+  const [[{ id_parish }]] = await pool.execute(
+      `SELECT id_parish FROM users WHERE card_id = ?`,
+      [cardId]
+  );
+
+  // Pobierz użytkowników z parafii
+  const [users] = await pool.execute(
+      `SELECT card_id, first_name, last_name FROM users WHERE id_parish = ?`,
+      [id_parish]
+  );
+
+  // Pobierz wszystkie godziny mszy z tabeli mass_time
+  const [massTimes] = await pool.execute(
+      `SELECT day_of_week, time FROM mass_times WHERE id_parish = ? ORDER BY FIELD(day_of_week, 'Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'), time`,
+      [id_parish]
+  );
+
+  return {
+    users,
+    massTimes,
+  };
+}
+
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1334,4 +1358,5 @@ module.exports = {
     getRecentReadings,
   getUsersForMeating,
     saveMeatingResults,
+  getScheduleData,
 };
