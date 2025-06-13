@@ -31,6 +31,7 @@ const {
   getUsersForMeating,
     saveMeatingResults,
   getScheduleData,
+    saveScheduleToDB,
 
 } = require('./db')
 const {log} = require("debug");
@@ -255,5 +256,21 @@ router.post('/get-schedule-data', authenticateToken,async (req, res) => {
     res.status(500).json({ message: "Błąd serwera" });
   }
 });
+router.post("/save-schedule",authenticateToken,async (req,res)=>{
+    try {
+        const { date_from, date_to, schedule } = req.body;
+
+        if (!date_from || !date_to || !Array.isArray(schedule)) {
+            return res.status(400).json({ message: "Nieprawidłowe dane wejściowe" });
+        }
+
+        await saveScheduleToDB(date_from, date_to, schedule);
+
+        res.status(200).json({ message: "Harmonogram zapisany pomyślnie" });
+    } catch (err) {
+        console.error("Błąd zapisu harmonogramu:", err);
+        res.status(500).json({ message: "Błąd serwera podczas zapisywania harmonogramu" });
+    }
+})
 
 module.exports = router;

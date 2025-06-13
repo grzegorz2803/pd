@@ -632,11 +632,14 @@ async function getProfilData(cardId, res) {
         const [weekResult] = await pool.execute(`SELECT WEEKOFYEAR(NOW()) AS current_week`);
 
         const currentWeek = weekResult[0].current_week;
-        const [dutyRows] = await pool.execute(`SELECT day_of_week, time
-                                               FROM lso_schedules
-                                               WHERE user_card_id = ? AND week_number = ?
-                                               ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela')
-                                                       , time `, [cardId, currentWeek]);
+        const [dutyRows] = await pool.execute(
+            `SELECT day_of_week, time
+   FROM schedules
+   WHERE card_id = ?
+     AND CURDATE() BETWEEN date_from AND date_to
+   ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'), time`,
+            [cardId]
+        );
         return res.json({
             ...result[0],
             duties: dutyRows,
@@ -1326,6 +1329,37 @@ async function getScheduleData(cardId) {
     massTimes,
   };
 }
+async function saveScheduleToDB(dateFrom, dateTo, scheduleArray) {
+
+    const valuesToInsert = [];
+
+    for (const entry of scheduleArray) {
+        const { day_of_week, time, user_ids } = entry;
+
+        for (const card_id of user_ids) {
+            valuesToInsert.push([
+                dateFrom,
+                dateTo,
+                day_of_week,
+                time,
+                card_id
+            ]);
+        }
+    }
+
+    if (valuesToInsert.length === 0) return;
+
+    const placeholders = valuesToInsert.map(() => "(?, ?, ?, ?, ?)").join(", ");
+
+    const sql = `
+    INSERT INTO schedules (date_from, date_to, day_of_week, time, card_id)
+    VALUES ${placeholders}
+  `;
+
+    const flattenedValues = valuesToInsert.flat();
+
+    await pool.execute(sql, flattenedValues);
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -1359,4 +1393,5 @@ module.exports = {
   getUsersForMeating,
     saveMeatingResults,
   getScheduleData,
+    saveScheduleToDB,
 };
