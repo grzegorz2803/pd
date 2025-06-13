@@ -26,9 +26,14 @@ export default function ScheduleScreen({ navigation }) {
     time: null,
   });
   const [dateFrom, setDateFrom] = useState(new Date());
-  const [dateTo, setDateTo] = useState(new Date());
+  const [dateTo, setDateTo] = useState(() => {
+    const today = new Date();
+    const nextMonth = new Date(today);
+    nextMonth.setMonth(today.getMonth() + 1);
+    return nextMonth;
+  });
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [pickerMode, setPickerMode] = useState("from"); // "from" | "to"
+  const [pickerMode, setPickerMode] = useState("from");
   const [massSchedule, setMassSchedule] = useState({});
   const [userList, setUserList] = useState([]);
 
@@ -81,28 +86,6 @@ export default function ScheduleScreen({ navigation }) {
     setShowModal(true);
   };
 
-  // const onDateChange = (event, selectedDate) => {
-  //   if (!selectedDate) {
-  //     setShowDatePicker({ visible: false, mode: "from" });
-  //     return;
-  //   }
-
-  //   if (showDatePicker.mode === "from") {
-  //     if (selectedDate > dateTo) {
-  //       alert("Data początkowa nie może być późniejsza niż końcowa.");
-  //     } else {
-  //       setDateFrom(selectedDate);
-  //     }
-  //   } else {
-  //     if (selectedDate < dateFrom) {
-  //       alert("Data końcowa nie może być wcześniejsza niż początkowa.");
-  //     } else {
-  //       setDateTo(selectedDate);
-  //     }
-  //   }
-
-  //   setShowDatePicker({ visible: false, mode: "from" });
-  // };
   const showPicker = (mode) => {
     setPickerMode(mode);
     setDatePickerVisible(true);
@@ -215,6 +198,14 @@ export default function ScheduleScreen({ navigation }) {
                   dateTo: dateTo.toISOString().split("T")[0],
                   selectedUsersMap,
                 });
+                setSelectedUsersMap({});
+                setExpandedDay(null);
+
+                const today = new Date();
+                const nextMonth = new Date(today);
+                nextMonth.setMonth(today.getMonth() + 1);
+                setDateFrom(today);
+                setDateTo(nextMonth);
                 alert("Harmonogram został zapisany!");
               } catch (err) {
                 alert("Błąd zapisu: " + err.message);
