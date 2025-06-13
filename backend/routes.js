@@ -245,10 +245,10 @@ router.post("/submit-meating-results",authenticateToken,async (req,res)=>{
     const {results} = req.body;
      await saveMeatingResults(cardId,results,res);
 })
-router.post('/get-schedule-data', async (req, res) => {
-  const { card_id } = req.body;
+router.post('/get-schedule-data', authenticateToken,async (req, res) => {
+  const  cardId  = req.user.card_id;
   try {
-    const results = await getScheduleData(card_id);
+    const results = await getScheduleData(cardId);
     res.status(200).json(results);
   } catch (error) {
     console.error("Błąd pobierania danych do harmonogramu:", error);
