@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
-
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 const staticMassSchedule = {
   Niedziela: ["06:30", "08:00", "09:30", "11:00", "13:00", "17:00"],
   Poniedziałek: ["06:30", "07:00", "08:00", "18:00"],
@@ -41,10 +41,8 @@ export default function ScheduleScreen({ navigation }) {
   });
   const [dateFrom, setDateFrom] = useState(new Date());
   const [dateTo, setDateTo] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState({
-    visible: false,
-    mode: "from",
-  });
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [pickerMode, setPickerMode] = useState("from"); // "from" | "to"
 
   const toggleDay = (day) => {
     setExpandedDay((prev) => (prev === day ? null : day));
@@ -70,24 +68,52 @@ export default function ScheduleScreen({ navigation }) {
   };
 
   const onDateChange = (event, selectedDate) => {
-    if (!selectedDate)
-      return setShowDatePicker({ visible: false, mode: "from" });
+    if (!selectedDate) {
+      setShowDatePicker({ visible: false, mode: "from" });
+      return;
+    }
+
     if (showDatePicker.mode === "from") {
       if (selectedDate > dateTo) {
-        alert("Data początkowa nie może być późniejsza niż data końcowa");
-        return;
+        alert("Data początkowa nie może być późniejsza niż końcowa.");
+      } else {
+        setDateFrom(selectedDate);
       }
-      setDateFrom(selectedDate);
     } else {
       if (selectedDate < dateFrom) {
-        alert("Data końcowa nie może być wcześniejsza niż data początkowa");
-        return;
+        alert("Data końcowa nie może być wcześniejsza niż początkowa.");
+      } else {
+        setDateTo(selectedDate);
       }
-      setDateTo(selectedDate);
     }
+
     setShowDatePicker({ visible: false, mode: "from" });
   };
+  const showPicker = (mode) => {
+    setPickerMode(mode);
+    setDatePickerVisible(true);
+  };
 
+  const hidePicker = () => {
+    setDatePickerVisible(false);
+  };
+
+  const handleConfirm = (date) => {
+    if (pickerMode === "from") {
+      if (date > dateTo) {
+        alert("Data początkowa nie może być późniejsza niż końcowa");
+      } else {
+        setDateFrom(date);
+      }
+    } else {
+      if (date < dateFrom) {
+        alert("Data końcowa nie może być wcześniejsza niż początkowa");
+      } else {
+        setDateTo(date);
+      }
+    }
+    hidePicker();
+  };
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -99,24 +125,24 @@ export default function ScheduleScreen({ navigation }) {
           <Text style={styles.title}>Tworzenie harmonogramu</Text>
 
           <View style={styles.dateRangeContainer}>
-            <View>
-              <Text style={styles.dateLabel}>Od:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="RRRR-MM-DD"
-                value={dateFrom}
-                onChangeText={setDateFrom}
-              />
-            </View>
-            <View>
-              <Text style={styles.dateLabel}>Do:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="RRRR-MM-DD"
-                value={dateTo}
-                onChangeText={setDateTo}
-              />
-            </View>
+            <TouchableOpacity onPress={() => showPicker("from")}>
+              <Text style={styles.dateLabel}>
+                Od: {dateFrom.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => showPicker("to")}>
+              <Text style={styles.dateLabel}>
+                Do: {dateTo.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={handleConfirm}
+              onCancel={hidePicker}
+              date={pickerMode === "from" ? dateFrom : dateTo}
+            />
           </View>
 
           {Object.entries(staticMassSchedule).map(([day, times]) => (
@@ -177,15 +203,6 @@ export default function ScheduleScreen({ navigation }) {
             <Text style={styles.saveButtonText}>Zapisz harmonogram</Text>
           </TouchableOpacity>
         </ScrollView>
-
-        {showDatePicker.visible && (
-          <DateTimePicker
-            value={showDatePicker.mode === "from" ? dateFrom : dateTo}
-            mode="date"
-            display="default"
-            onChange={onDateChange}
-          />
-        )}
 
         <Modal visible={showModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
@@ -248,6 +265,10 @@ const styles = StyleSheet.create({
     fontSize: RFValue(16),
     color: "#4a2d0f",
     fontWeight: "bold",
+    backgroundColor: "#fff3d1",
+    padding: RFValue(8),
+    borderRadius: 6,
+    marginBottom: RFValue(10),
   },
   card: {
     backgroundColor: "#ffeca8",
