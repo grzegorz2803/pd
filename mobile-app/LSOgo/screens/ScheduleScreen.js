@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,22 +14,8 @@ import {
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-const staticMassSchedule = {
-  Niedziela: ["06:30", "08:00", "09:30", "11:00", "13:00", "17:00"],
-  Poniedziałek: ["06:30", "07:00", "08:00", "18:00"],
-  Wtorek: ["06:30", "07:00", "08:00", "18:00"],
-  Środa: ["06:30", "07:00", "08:00", "18:00"],
-  Czwartek: ["06:30", "07:00", "08:00", "18:00"],
-  Piątek: ["06:30", "07:00", "08:00", "18:00"],
-  Sobota: ["06:30", "07:00", "08:00", "18:00"],
-};
-
-const staticUsers = [
-  "Jan Kowalski",
-  "Adam Nowak",
-  "Zofia Wiśniewska",
-  "Piotr Mazur",
-];
+import { getSchedules } from "../utils/api";
+import { sendSchedule } from "../utils/api";
 
 export default function ScheduleScreen({ navigation }) {
   const [expandedDay, setExpandedDay] = useState(null);
@@ -43,52 +29,80 @@ export default function ScheduleScreen({ navigation }) {
   const [dateTo, setDateTo] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [pickerMode, setPickerMode] = useState("from"); // "from" | "to"
+  const [massSchedule, setMassSchedule] = useState({});
+  const [userList, setUserList] = useState([]);
 
+  useEffect(() => {
+    const fetchScheduleData = async () => {
+      try {
+        const data = await getSchedules();
+
+        const grouped = {};
+        data.massTimes.forEach((entry) => {
+          if (!grouped[entry.day_of_week]) {
+            grouped[entry.day_of_week] = [];
+          }
+          grouped[entry.day_of_week].push(entry.time.slice(0, 5));
+        });
+
+        setMassSchedule(grouped);
+        setUserList(
+          data.users.map((u) => ({
+            id: u.card_id,
+            name: `${u.first_name} ${u.last_name}`,
+          }))
+        );
+      } catch (err) {
+        console.error("Błąd wczytywania danych harmonogramu", err);
+      }
+    };
+
+    fetchScheduleData();
+  }, []);
   const toggleDay = (day) => {
     setExpandedDay((prev) => (prev === day ? null : day));
   };
 
-  const toggleUser = (user) => {
+  const toggleUser = (userId) => {
     const key = `${currentSelection.day}_${currentSelection.time}`;
     const current = selectedUsersMap[key] || [];
-    const updated = current.includes(user)
-      ? current.filter((u) => u !== user)
-      : [...current, user];
+    const updated = current.includes(userId)
+      ? current.filter((id) => id !== userId)
+      : [...current, userId];
     setSelectedUsersMap({ ...selectedUsersMap, [key]: updated });
-  };
-
-  const openModal = (day, time) => {
-    setCurrentSelection({ day, time });
-    setShowModal(true);
   };
 
   const getSelectedUsers = () => {
     const key = `${currentSelection.day}_${currentSelection.time}`;
     return selectedUsersMap[key] || [];
   };
-
-  const onDateChange = (event, selectedDate) => {
-    if (!selectedDate) {
-      setShowDatePicker({ visible: false, mode: "from" });
-      return;
-    }
-
-    if (showDatePicker.mode === "from") {
-      if (selectedDate > dateTo) {
-        alert("Data początkowa nie może być późniejsza niż końcowa.");
-      } else {
-        setDateFrom(selectedDate);
-      }
-    } else {
-      if (selectedDate < dateFrom) {
-        alert("Data końcowa nie może być wcześniejsza niż początkowa.");
-      } else {
-        setDateTo(selectedDate);
-      }
-    }
-
-    setShowDatePicker({ visible: false, mode: "from" });
+  const openModal = (day, time) => {
+    setCurrentSelection({ day, time });
+    setShowModal(true);
   };
+
+  // const onDateChange = (event, selectedDate) => {
+  //   if (!selectedDate) {
+  //     setShowDatePicker({ visible: false, mode: "from" });
+  //     return;
+  //   }
+
+  //   if (showDatePicker.mode === "from") {
+  //     if (selectedDate > dateTo) {
+  //       alert("Data początkowa nie może być późniejsza niż końcowa.");
+  //     } else {
+  //       setDateFrom(selectedDate);
+  //     }
+  //   } else {
+  //     if (selectedDate < dateFrom) {
+  //       alert("Data końcowa nie może być wcześniejsza niż początkowa.");
+  //     } else {
+  //       setDateTo(selectedDate);
+  //     }
+  //   }
+
+  //   setShowDatePicker({ visible: false, mode: "from" });
+  // };
   const showPicker = (mode) => {
     setPickerMode(mode);
     setDatePickerVisible(true);
@@ -145,7 +159,7 @@ export default function ScheduleScreen({ navigation }) {
             />
           </View>
 
-          {Object.entries(staticMassSchedule).map(([day, times]) => (
+          {Object.entries(massSchedule).map(([day, times]) => (
             <View key={day} style={styles.card}>
               <TouchableOpacity onPress={() => toggleDay(day)}>
                 <Text style={styles.dayHeader}>{day}</Text>
@@ -169,11 +183,14 @@ export default function ScheduleScreen({ navigation }) {
                               </Text>
                             </TouchableOpacity>
                           </View>
-                          {assignedUsers.map((user, i) => (
-                            <Text key={i} style={styles.assignedUser}>
-                              {user}
-                            </Text>
-                          ))}
+                          {assignedUsers.map((userId) => {
+                            const user = userList.find((u) => u.id === userId);
+                            return user ? (
+                              <Text key={user.id} style={styles.assignedUser}>
+                                {user.name}
+                              </Text>
+                            ) : null;
+                          })}
                         </View>
                         {idx < times.length - 1 && (
                           <View style={styles.divider} />
@@ -187,17 +204,21 @@ export default function ScheduleScreen({ navigation }) {
           ))}
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => {
+            onPress={async () => {
               if (!dateFrom || !dateTo || dateFrom > dateTo) {
                 alert("Zakres dat jest nieprawidłowy.");
                 return;
               }
-              console.log("Zapisujemy harmonogram:", {
-                dateFrom,
-                dateTo,
-                selectedUsersMap,
-              });
-              alert("Harmonogram zapisany (symulacja)");
+              try {
+                await sendSchedule({
+                  dateFrom: dateFrom.toISOString().split("T")[0],
+                  dateTo: dateTo.toISOString().split("T")[0],
+                  selectedUsersMap,
+                });
+                alert("Harmonogram został zapisany!");
+              } catch (err) {
+                alert("Błąd zapisu: " + err.message);
+              }
             }}
           >
             <Text style={styles.saveButtonText}>Zapisz harmonogram</Text>
@@ -209,19 +230,19 @@ export default function ScheduleScreen({ navigation }) {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Wybierz osoby</Text>
               <FlatList
-                data={staticUsers}
-                keyExtractor={(item) => item}
+                data={userList}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity
+                    onPress={() => toggleUser(item.id)}
                     style={styles.checkboxRow}
-                    onPress={() => toggleUser(item)}
                   >
                     <View style={styles.checkbox}>
-                      {getSelectedUsers().includes(item) && (
+                      {getSelectedUsers().includes(item.id) && (
                         <View style={styles.checkboxSelected} />
                       )}
                     </View>
-                    <Text style={styles.checkboxLabel}>{item}</Text>
+                    <Text style={styles.checkboxLabel}>{item.name}</Text>
                   </TouchableOpacity>
                 )}
               />
