@@ -272,5 +272,15 @@ router.post("/save-schedule",authenticateToken,async (req,res)=>{
         res.status(500).json({ message: "Błąd serwera podczas zapisywania harmonogramu" });
     }
 })
+router.post('/get-recent-readings',authenticateToken,async (req, res) => {
+    const  cardId  = req.user.card_id;
+    try {
+        const results = await getRecentReadings(cardId);
+        res.status(200).json(results);
+    } catch (error) {
+        console.error("Błąd pobierania danych do harmonogramu:", error);
+        res.status(500).json({ message: "Błąd serwera" });
+    }
+});
 
 module.exports = router;
