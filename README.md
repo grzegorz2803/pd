@@ -2,7 +2,7 @@
 # ⛪ LSOgo – Presence & Scheduling System for Altar Servers
 LSOgo is a mobile and backend application designed to help parish moderators manage altar servers. It allows attendance tracking, scheduling Mass duties, messaging, and ranking participation—all in one place.
 
-📱 Technologies Used
+##📱 Technologies Used
 Frontend (Mobile): React Native (Expo)
 
 Backend: Node.js, Express.js
@@ -11,7 +11,7 @@ Database: MySQL (via mysql2)
 
 Authentication: JSON Web Tokens (JWT)
 
-✨ Main Features
+##✨ Main Features
 ✅ RFID-based Attendance tracking
 
 🗓️ Mass Duty Scheduler with drag-and-assign users
