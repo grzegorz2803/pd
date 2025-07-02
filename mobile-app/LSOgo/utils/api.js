@@ -520,7 +520,6 @@ export const getRecentReadings = async () => {
     if (!response.ok) {
       throw new Error(data.message || "Błąd pobierania ostatnich odczytów");
     }
-
     return data;
   } catch (error) {
     throw error;

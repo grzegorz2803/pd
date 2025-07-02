@@ -1,5 +1,5 @@
 // HistoryModeratorScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
+import { getRecentReadings } from "../utils/api";
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -65,7 +66,23 @@ export default function HistoryModeratorScreen({ navigation }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isPickerVisible, setPickerVisible] = useState(false);
+  const [recentReadings, setRecentReadings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchReadings = async () => {
+      try {
+        const readings = await getRecentReadings();
+        setRecentReadings(readings);
+      } catch (error) {
+        console.error("Błąd pobierania odczytów:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReadings();
+  }, []);
   const filteredByDate = mockReadings.filter(
     (r) =>
       r.date === selectedDate.toISOString().split("T")[0] &&
@@ -73,7 +90,7 @@ export default function HistoryModeratorScreen({ navigation }) {
   );
 
   const selectedUser = userList.find((u) => u.id === selectedUserId);
-
+  console.log(recentReadings);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
