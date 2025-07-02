@@ -32,7 +32,7 @@ const {
     saveMeatingResults,
   getScheduleData,
     saveScheduleToDB,
-
+    getRecentReadings30,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -272,10 +272,11 @@ router.post("/save-schedule",authenticateToken,async (req,res)=>{
         res.status(500).json({ message: "Błąd serwera podczas zapisywania harmonogramu" });
     }
 })
-router.post('/get-recent-readings',authenticateToken,async (req, res) => {
+router.post('/get-recent-readings30',authenticateToken,async (req, res) => {
     const  cardId  = req.user.card_id;
+    console.log(cardId);
     try {
-        const results = await getRecentReadings(cardId);
+        const results = await getRecentReadings30(cardId);
         res.status(200).json(results);
     } catch (error) {
         console.error("Błąd pobierania danych do harmonogramu:", error);
