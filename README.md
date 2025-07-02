@@ -1,4 +1,4 @@
-# ⛪ LSOgo – Presence & Scheduling System for Altar Servers
+# ⛪ LSOgo – Presence & Scheduling System 
 
 **LSOgo** is a mobile and backend application designed to help parish moderators manage altar servers.  
 It allows attendance tracking, scheduling Mass duties, messaging, and ranking participation—all in one place.
