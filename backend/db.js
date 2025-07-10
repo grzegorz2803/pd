@@ -1433,6 +1433,41 @@ const getRecentReadings30 = async (cardId) => {
     }
 };
 
+const getUsersFromParish = async (cardId) => {
+    try {
+        // Krok 1: Pobierz id_parish na podstawie card_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+            [cardId]
+        );
+
+        if (userRow[0] === undefined) {
+            return res.status(404).json({message: "Nie znaleziono parafii"});
+        }
+
+
+        const parishID = userRow[0].id_parish;
+
+        // Pobierz użytkowników z tej parafii
+        const [users] = await pool.execute(
+            `SELECT card_id, first_name, last_name
+       FROM users
+       WHERE id_parish = ?`,
+            [parishID]
+        );
+
+        // Zwróć w formacie { id, name }
+        return users.map((u) => ({
+            id: u.card_id,
+            name: `${u.first_name} ${u.last_name}`,
+        }));
+    } catch (error) {
+        console.error("Błąd w getUsersFromParish:", error);
+        throw error;
+    }
+};
 
 
 module.exports = {
@@ -1469,4 +1504,5 @@ module.exports = {
     saveScheduleToDB,
     getRecentReadings,
     getRecentReadings30,
+    getUsersFromParish,
 };
