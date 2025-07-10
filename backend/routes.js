@@ -35,6 +35,7 @@ const {
     getRecentReadings30,
     getUsersFromParish,
     getUserRecentReadings,
+    getReadingsByDate,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -296,5 +297,15 @@ router.post('/get-user-recent-readings',authenticateToken, async (req,res)=>{
         res.status(500).json({message: "Błąd serwera"});
     }
 })
-
+router.post('/get-readings-by-date',authenticateToken, async (req, res) => {
+    const  cardId  = req.user.card_id;
+    const date = req.body;
+    try {
+        const readings = await getReadingsByDate(cardId, date);
+        res.status(200).json(readings);
+    } catch (error) {
+        console.error("Błąd pobierania danych :", error);
+        res.status(500).json({ message: "Błąd serwera" });
+    }
+});
 module.exports = router;

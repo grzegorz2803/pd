@@ -1410,18 +1410,11 @@ const getRecentReadings30 = async (cardId) => {
         ];
 
         const formatted = readings.map((r) => {
-            const date = new Date(r.date_read);
-            const dzienTygodnia = dniTygodnia[date.getDay()];
-            const formattedDate = date
-                .toISOString()
-                .split("T")[0]
-                .split("-")
-                .reverse()
-                .join(".");
+            const localDate = moment.tz(r.date_read, "Europe/Warsaw");
             return {
                 name: `${r.first_name} ${r.last_name}`,
-                date: formattedDate,
-                weekday: dzienTygodnia,
+                date: localDate.format("DD.MM.YYYY"),
+                weekday: dniTygodnia[localDate.day()],
                 time: r.time_service.slice(0, 5),
                 service: r.name_service,
             };
@@ -1527,7 +1520,73 @@ const getUserRecentReadings = async (cardId) => {
         throw error;
     }
 };
+const getReadingsByDate = async (cardId, dateObj) => {
+    try {
+        /// Krok 1: Pobierz id_parish na podstawie card_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+            [cardId]
+        );
 
+        if (userRow[0] === undefined) {
+            return res.status(404).json({message: "Nie znaleziono parafii"});
+        }
+
+
+        const parishId = userRow[0].id_parish;
+        const tableName = `${parishId}_readings`;
+
+        // Przekonwertuj datę na odpowiedni format (np. "2025-07-10")
+        const date = dateObj.date;
+        if (!date) throw new Error("Brak daty w żądaniu");
+
+        // Pobierz wszystkie odczyty dla danej daty z tabeli
+        const [rows] = await pool.execute(
+            `
+      SELECT 
+        u.first_name,
+        u.last_name,
+        r.date_read,
+        r.time_service,
+        r.name_service
+      FROM \`${tableName}\` r
+      JOIN users u ON u.card_id = r.card_id
+      WHERE DATE(r.date_read) = ?
+      ORDER BY r.time_service ASC
+    `,
+            [date]
+        );
+
+        const dniTygodnia = [
+            "Niedziela",
+            "Poniedziałek",
+            "Wtorek",
+            "Środa",
+            "Czwartek",
+            "Piątek",
+            "Sobota",
+        ];
+
+        const formatted = rows.map((r) => {
+            const m = moment.tz(r.date_read, "Europe/Warsaw");
+
+            return {
+                name: `${r.first_name} ${r.last_name}`,
+                date: m.format("DD.MM.YYYY"),
+                weekday: dniTygodnia[m.day()],
+                time: r.time_service.slice(0, 5),
+                service: r.name_service,
+            };
+        });
+
+        return formatted;
+    } catch (error) {
+        console.error("Błąd w getReadingsByDate:", error);
+        throw error;
+    }
+};
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -1564,5 +1623,6 @@ module.exports = {
     getRecentReadings,
     getRecentReadings30,
     getUsersFromParish,
-    getUserRecentReadings
+    getUserRecentReadings,
+    getReadingsByDate,
 };
