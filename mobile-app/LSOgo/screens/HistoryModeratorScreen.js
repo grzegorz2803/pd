@@ -16,6 +16,7 @@ import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import { getRecentReadings } from "../utils/api";
 import { getUserRecentReadings } from "../utils/api";
+import { getReadingsByDate } from "../utils/api";
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -24,30 +25,6 @@ const formatDate = (date) => {
   const year = d.getFullYear();
   return `${day}-${month}-${year}`;
 };
-
-const mockReadings = [
-  {
-    id: "1050177083521",
-    name: "Jan Kowalski",
-    time: "06:30",
-    date: "2025-07-01",
-    mass: "Msza poranna",
-  },
-  {
-    id: 2,
-    name: "Adam Nowak",
-    time: "07:00",
-    date: "2025-07-01",
-    mass: "Msza szkolna",
-  },
-  {
-    id: 3,
-    name: "Zofia Wiśniewska",
-    time: "08:00",
-    date: "2025-07-01",
-    mass: "Msza dziękczynna",
-  },
-];
 
 export default function HistoryModeratorScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -59,6 +36,7 @@ export default function HistoryModeratorScreen({ navigation }) {
   const [userList, setUserList] = useState([]);
   const [userReadings, setUserReadings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filteredReadings, setFilteredReadings] = useState([]);
 
   useEffect(() => {
     const fetchReadings = async () => {
@@ -75,11 +53,6 @@ export default function HistoryModeratorScreen({ navigation }) {
 
     fetchReadings();
   }, []);
-  const filteredByDate = mockReadings.filter(
-    (r) =>
-      r.date === selectedDate.toISOString().split("T")[0] &&
-      (!selectedHour || r.time === selectedHour)
-  );
 
   const selectedUser = userList.find((u) => u.id === selectedUserId);
   return (
@@ -108,19 +81,19 @@ export default function HistoryModeratorScreen({ navigation }) {
                 setSelectedDate(date);
                 setSelectedHour(null);
                 setPickerVisible(false);
+                const formattedDate = date.toISOString().split("T")[0]; // YYYY-MM-DD
+
+                try {
+                  const result = getReadingsByDate(formattedDate);
+                  console.log("Odczyty dla daty:", result);
+                  setFilteredReadings(result);
+                } catch (err) {
+                  console.error("Błąd przy pobieraniu odczytów:", err);
+                }
               }}
               onCancel={() => setPickerVisible(false)}
               date={selectedDate}
             />
-            {filteredByDate.map((r) => (
-              <View key={r.id} style={styles.entryBox}>
-                <View style={styles.rowBetween}>
-                  <Text style={styles.dateDay}>{r.name}</Text>
-                </View>
-                <Text style={styles.serviceName}>{r.mass}</Text>
-                <Text style={styles.time}>{r.time}</Text>
-              </View>
-            ))}
           </View>
 
           {/* Sekcja 2 */}

@@ -545,7 +545,25 @@ export const getUserRecentReadings = async (cardId) => {
     throw error;
   }
 };
+export const getReadingsByDate = async (date) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-readings-by-date`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ date }),
+    });
 
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania odczytów dla daty");
+    return data;
+  } catch (error) {
+    console.error("API błąd:", error);
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
