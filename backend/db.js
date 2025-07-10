@@ -2,6 +2,7 @@ const mysql = require('mysql2/promise');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
+const moment = require("moment-timezone");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -1468,6 +1469,64 @@ const getUsersFromParish = async (cardId) => {
         throw error;
     }
 };
+const getUserRecentReadings = async (cardId) => {
+    try {
+        /// Krok 1: Pobierz id_parish na podstawie card_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+            [cardId]
+        );
+
+        if (userRow[0] === undefined) {
+            return res.status(404).json({message: "Nie znaleziono parafii"});
+        }
+
+
+        const parishId = userRow[0].id_parish;
+        const tableName = `${parishId}_readings`;
+
+        // Pobierz 5 ostatnich odczytów danego użytkownika
+        const [rows] = await pool.query(
+            `
+      SELECT 
+        r.date_read,
+        r.time_service,
+        r.name_service
+      FROM \`${tableName}\` r
+      WHERE r.card_id = ?
+      ORDER BY r.date_read DESC, r.time_service DESC
+      LIMIT 5
+      `,
+            [cardId]
+        );
+        const dniTygodnia = [
+            "Niedziela",
+            "Poniedziałek",
+            "Wtorek",
+            "Środa",
+            "Czwartek",
+            "Piątek",
+            "Sobota",
+        ];
+
+        const formatted = rows.map((r) => {
+            const m = moment.tz(r.date_read, "Europe/Warsaw");
+
+            return {
+                date: m.format("DD.MM.YYYY"),
+                weekday: dniTygodnia[m.day()],
+                time: r.time_service.slice(0, 5),
+                service: r.name_service,
+            };
+        });
+        return formatted;
+    } catch (error) {
+        console.error("Błąd w getUserRecentReadings:", error);
+        throw error;
+    }
+};
 
 
 module.exports = {
@@ -1505,4 +1564,5 @@ module.exports = {
     getRecentReadings,
     getRecentReadings30,
     getUsersFromParish,
+    getUserRecentReadings
 };
