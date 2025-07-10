@@ -47,13 +47,6 @@ const mockReadings = [
     mass: "Msza dziękczynna",
   },
 ];
-
-const mockUserHistory = [
-  { date: "2025-07-01", time: "06:30", mass: "Msza poranna" },
-  { date: "2025-06-30", time: "18:00", mass: "Msza wieczorna" },
-  { date: "2025-06-29", time: "11:00", mass: "Msza niedzielna" },
-];
-
 const userList = [
   { id: "1050177083521", name: "Piotr Wiśniewski" },
   { id: "1050529798272", name: "Jan Kowalski" },
@@ -90,7 +83,6 @@ export default function HistoryModeratorScreen({ navigation }) {
   );
 
   const selectedUser = userList.find((u) => u.id === selectedUserId);
-  console.log(recentReadings);
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -187,14 +179,14 @@ export default function HistoryModeratorScreen({ navigation }) {
           {/* Sekcja 3 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ostatnie 30 odczytów</Text>
-            {mockReadings.map((r) => (
-              <View key={r.id} style={styles.entryBox}>
+            {recentReadings.map((r, index) => (
+              <View key={index} style={styles.entryBox}>
                 <View style={styles.rowBetween}>
                   <Text style={styles.dateDay}>{r.name}</Text>
                 </View>
-                <Text style={styles.serviceName}>{r.mass}</Text>
+                <Text style={styles.serviceName}>{r.service}</Text>
                 <Text style={styles.time}>
-                  {formatDate(r.date)} {r.time}
+                  {r.weekday} {r.date} {r.time}
                 </Text>
               </View>
             ))}

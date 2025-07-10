@@ -508,7 +508,7 @@ export const sendSchedule = async ({ dateFrom, dateTo, selectedUsersMap }) => {
 };
 export const getRecentReadings = async () => {
   try {
-    const response = await fetchWithAuth(`${BASE_URL}/get-recent-readings`, {
+    const response = await fetchWithAuth(`${BASE_URL}/get-recent-readings30`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
