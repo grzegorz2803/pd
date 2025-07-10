@@ -28,7 +28,6 @@ const formatDate = (date) => {
 
 export default function HistoryModeratorScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedHour, setSelectedHour] = useState(null);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isPickerVisible, setPickerVisible] = useState(false);
@@ -37,6 +36,8 @@ export default function HistoryModeratorScreen({ navigation }) {
   const [userReadings, setUserReadings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredReadings, setFilteredReadings] = useState([]);
+  const [availableHours, setAvailableHours] = useState([]);
+  const [selectedHour, setSelectedHour] = useState(null);
 
   useEffect(() => {
     const fetchReadings = async () => {
@@ -77,15 +78,17 @@ export default function HistoryModeratorScreen({ navigation }) {
             <DateTimePickerModal
               isVisible={isPickerVisible}
               mode="date"
-              onConfirm={(date) => {
+              onConfirm={async (date) => {
                 setSelectedDate(date);
                 setSelectedHour(null);
                 setPickerVisible(false);
                 const formattedDate = date.toISOString().split("T")[0]; // YYYY-MM-DD
 
                 try {
-                  const result = getReadingsByDate(formattedDate);
-                  console.log("Odczyty dla daty:", result);
+                  const result = await getReadingsByDate(formattedDate);
+                  const uniqueHours = [...new Set(result.map((r) => r.time))];
+
+                  setAvailableHours(uniqueHours.sort());
                   setFilteredReadings(result);
                 } catch (err) {
                   console.error("Błąd przy pobieraniu odczytów:", err);
@@ -94,6 +97,40 @@ export default function HistoryModeratorScreen({ navigation }) {
               onCancel={() => setPickerVisible(false)}
               date={selectedDate}
             />
+            <View style={styles.hourFilterContainer}>
+              {availableHours.map((hour) => (
+                <TouchableOpacity
+                  key={hour}
+                  onPress={() =>
+                    setSelectedHour(hour === selectedHour ? null : hour)
+                  }
+                  style={[
+                    styles.hourChip,
+                    selectedHour === hour && styles.hourChipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.hourChipText,
+                      selectedHour === hour && styles.hourChipTextSelected,
+                    ]}
+                  >
+                    {hour}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {filteredReadings
+              .filter((r) => !selectedHour || r.time === selectedHour)
+              .map((r, index) => (
+                <View key={index} style={styles.entryBox}>
+                  <View style={styles.rowBetween}>
+                    <Text style={styles.dateDay}>{r.name}</Text>
+                    <Text style={styles.time}>{r.time}</Text>
+                  </View>
+                  <Text style={styles.serviceName}>{r.service}</Text>
+                </View>
+              ))}
           </View>
 
           {/* Sekcja 2 */}
@@ -285,5 +322,29 @@ const styles = StyleSheet.create({
     color: "#3d2b1f",
     marginTop: RFValue(3),
     fontWeight: "bold",
+  },
+  hourFilterContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+    marginVertical: 10,
+  },
+  hourChip: {
+    backgroundColor: "#eee0b8",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    margin: 4,
+  },
+  hourChipSelected: {
+    backgroundColor: "#c4a46d",
+  },
+  hourChipText: {
+    color: "#4a2d0f",
+    fontWeight: "bold",
+  },
+  hourChipTextSelected: {
+    color: "#fff",
   },
 });
