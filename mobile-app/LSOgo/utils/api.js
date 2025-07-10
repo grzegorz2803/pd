@@ -461,7 +461,109 @@ export const submitMeatingResults = async (results) => {
     throw error;
   }
 };
+export const getSchedules = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-schedule-data`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania harmonogramu");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const sendSchedule = async ({ dateFrom, dateTo, selectedUsersMap }) => {
+  try {
+    const payload = {
+      date_from: dateFrom,
+      date_to: dateTo,
+      schedule: Object.entries(selectedUsersMap).map(([key, user_ids]) => {
+        const [day_of_week, time] = key.split("_");
+        return {
+          day_of_week,
+          time,
+          user_ids,
+        };
+      }),
+    };
 
+    const response = await fetchWithAuth(`${BASE_URL}/save-schedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd zapisu harmonogramu");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getRecentReadings = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-recent-readings30`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd pobierania ostatnich odczytów");
+    }
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getUserRecentReadings = async (cardId) => {
+  try {
+    const response = await fetchWithAuth(
+      `${BASE_URL}/get-user-recent-readings`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cardId }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania odczytów użytkownika");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getReadingsByDate = async (date) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-readings-by-date`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ date }),
+    });
+
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania odczytów dla daty");
+    return data;
+  } catch (error) {
+    console.error("API błąd:", error);
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

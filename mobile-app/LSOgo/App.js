@@ -19,6 +19,8 @@ import ContactScreen from "./screens/ContactScreen";
 import MoreModeratorScreen from "./screens/MoreModeratorScreen";
 import RankingModeratorScreen from "./screens/RankingModeratorScreen";
 import MeatingScreen from "./screens/MeatingScreen";
+import ScheduleScreen from "./screens/ScheduleScreen";
+import HistoryModeratorScreen from "./screens/HistoryModeratorScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -51,10 +53,12 @@ export default function App() {
             <Stack.Screen name="Contact" component={ContactScreen} />
             <Stack.Screen name="RankingM" component={RankingModeratorScreen} />
             <Stack.Screen name="Meating" component={MeatingScreen} />
+            <Stack.Screen name="Schedule" component={ScheduleScreen} />
             <Stack.Screen
               name="MoreModerator"
               component={MoreModeratorScreen}
             />
+            <Stack.Screen name="HistoryM" component={HistoryModeratorScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

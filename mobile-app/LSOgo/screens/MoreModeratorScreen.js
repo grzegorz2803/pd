@@ -28,7 +28,7 @@ export default function MoreScreen({ navigation }) {
           <Text style={styles.title}>Więcej opcji</Text>
           <TouchableOpacity
             style={styles.option}
-            onPress={() => navigation.navigate("Harmonogramy")}
+            onPress={() => navigation.navigate("Schedule")}
           >
             <View style={styles.optionContent}>
               <Image
