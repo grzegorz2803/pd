@@ -2,6 +2,7 @@ const mysql = require("mysql2/promise");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
+const moment = require("moment-timezone");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -757,11 +758,11 @@ async function getProfilData(cardId, res) {
     const currentWeek = weekResult[0].current_week;
     const [dutyRows] = await pool.execute(
       `SELECT day_of_week, time
-                                               FROM lso_schedules
-                                               WHERE user_card_id = ? AND week_number = ?
-                                               ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela')
-                                                       , time `,
-      [cardId, currentWeek]
+   FROM schedules
+   WHERE card_id = ?
+     AND CURDATE() BETWEEN date_from AND date_to
+   ORDER BY FIELD(day_of_week, 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'), time`,
+      [cardId]
     );
     return res.json({
       ...result[0],
@@ -1315,7 +1316,7 @@ async function getRecentReadings(cardId, res) {
     const tableName = `\`${parishID}_readings\``;
 
     const [rows] = await pool.execute(
-      `SELECT 
+      `SELECT
           DATE_FORMAT(date_read, '%d.%m.%Y') AS date,
           TIME_FORMAT(time_read, '%H:%i') AS hour,
           name_service AS service_name,
@@ -1455,6 +1456,276 @@ async function saveMeatingResults(cardId, results, res) {
       .json({ message: "Błąd serwera przy zapisywaniu zbiórki " });
   }
 }
+async function getScheduleData(cardId) {
+  const [[{ id_parish }]] = await pool.execute(
+    `SELECT id_parish FROM users WHERE card_id = ?`,
+    [cardId]
+  );
+
+  // Pobierz użytkowników z parafii
+  const [users] = await pool.execute(
+    `SELECT card_id, first_name, last_name FROM users WHERE id_parish = ?`,
+    [id_parish]
+  );
+
+  // Pobierz wszystkie godziny mszy z tabeli mass_time
+  const [massTimes] = await pool.execute(
+    `SELECT day_of_week, time FROM mass_times WHERE id_parish = ? ORDER BY FIELD(day_of_week, 'Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'), time`,
+    [id_parish]
+  );
+
+  return {
+    users,
+    massTimes,
+  };
+}
+async function saveScheduleToDB(dateFrom, dateTo, scheduleArray) {
+  const valuesToInsert = [];
+
+  for (const entry of scheduleArray) {
+    const { day_of_week, time, user_ids } = entry;
+
+    for (const card_id of user_ids) {
+      valuesToInsert.push([dateFrom, dateTo, day_of_week, time, card_id]);
+    }
+  }
+
+  if (valuesToInsert.length === 0) return;
+
+  const placeholders = valuesToInsert.map(() => "(?, ?, ?, ?, ?)").join(", ");
+
+  const sql = `
+    INSERT INTO schedules (date_from, date_to, day_of_week, time, card_id)
+    VALUES ${placeholders}
+  `;
+
+  const flattenedValues = valuesToInsert.flat();
+
+  await pool.execute(sql, flattenedValues);
+}
+
+const getRecentReadings30 = async (cardId) => {
+  try {
+    // Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+    const tableName = `${parishID}_readings`;
+
+    // Krok 2: Pobierz ostatnie 30 odczytów dla parafii z danymi użytkownika
+    const [readings] = await pool.query(
+      `
+      SELECT 
+        u.first_name,
+        u.last_name,
+        r.date_read,
+        r.time_service,
+        r.name_service
+      FROM \`${tableName}\` r
+      JOIN users u ON u.card_id = r.card_id
+      WHERE u.id_parish = ?
+      ORDER BY r.date_read DESC, r.time_service DESC
+      LIMIT 30
+      `,
+      [parishID]
+    );
+
+    // Krok 3: Dodaj nazwę dnia tygodnia po polsku
+    const dniTygodnia = [
+      "Niedziela",
+      "Poniedziałek",
+      "Wtorek",
+      "Środa",
+      "Czwartek",
+      "Piątek",
+      "Sobota",
+    ];
+
+    const formatted = readings.map((r) => {
+      const localDate = moment.tz(r.date_read, "Europe/Warsaw");
+      return {
+        name: `${r.first_name} ${r.last_name}`,
+        date: localDate.format("DD.MM.YYYY"),
+        weekday: dniTygodnia[localDate.day()],
+        time: r.time_service.slice(0, 5),
+        service: r.name_service,
+      };
+    });
+
+    return formatted;
+  } catch (error) {
+    console.error("Błąd w getRecentReadings:", error);
+    throw error;
+  }
+};
+
+const getUsersFromParish = async (cardId) => {
+  try {
+    // Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishID = userRow[0].id_parish;
+
+    // Pobierz użytkowników z tej parafii
+    const [users] = await pool.execute(
+      `SELECT card_id, first_name, last_name
+       FROM users
+       WHERE id_parish = ?`,
+      [parishID]
+    );
+
+    // Zwróć w formacie { id, name }
+    return users.map((u) => ({
+      id: u.card_id,
+      name: `${u.first_name} ${u.last_name}`,
+    }));
+  } catch (error) {
+    console.error("Błąd w getUsersFromParish:", error);
+    throw error;
+  }
+};
+const getUserRecentReadings = async (cardId) => {
+  try {
+    /// Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishId = userRow[0].id_parish;
+    const tableName = `${parishId}_readings`;
+
+    // Pobierz 5 ostatnich odczytów danego użytkownika
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        r.date_read,
+        r.time_service,
+        r.name_service
+      FROM \`${tableName}\` r
+      WHERE r.card_id = ?
+      ORDER BY r.date_read DESC, r.time_service DESC
+      LIMIT 5
+      `,
+      [cardId]
+    );
+    const dniTygodnia = [
+      "Niedziela",
+      "Poniedziałek",
+      "Wtorek",
+      "Środa",
+      "Czwartek",
+      "Piątek",
+      "Sobota",
+    ];
+
+    const formatted = rows.map((r) => {
+      const m = moment.tz(r.date_read, "Europe/Warsaw");
+
+      return {
+        date: m.format("DD.MM.YYYY"),
+        weekday: dniTygodnia[m.day()],
+        time: r.time_service.slice(0, 5),
+        service: r.name_service,
+      };
+    });
+    return formatted;
+  } catch (error) {
+    console.error("Błąd w getUserRecentReadings:", error);
+    throw error;
+  }
+};
+const getReadingsByDate = async (cardId, dateObj) => {
+  try {
+    /// Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishId = userRow[0].id_parish;
+    const tableName = `${parishId}_readings`;
+
+    // Przekonwertuj datę na odpowiedni format (np. "2025-07-10")
+    const date = dateObj.date;
+    if (!date) throw new Error("Brak daty w żądaniu");
+
+    // Pobierz wszystkie odczyty dla danej daty z tabeli
+    const [rows] = await pool.execute(
+      `
+      SELECT 
+        u.first_name,
+        u.last_name,
+        r.date_read,
+        r.time_service,
+        r.name_service
+      FROM \`${tableName}\` r
+      JOIN users u ON u.card_id = r.card_id
+      WHERE DATE(r.date_read) = ?
+      ORDER BY r.time_service ASC
+    `,
+      [date]
+    );
+
+    const dniTygodnia = [
+      "Niedziela",
+      "Poniedziałek",
+      "Wtorek",
+      "Środa",
+      "Czwartek",
+      "Piątek",
+      "Sobota",
+    ];
+
+    const formatted = rows.map((r) => {
+      const m = moment.tz(r.date_read, "Europe/Warsaw");
+
+      return {
+        name: `${r.first_name} ${r.last_name}`,
+        date: m.format("DD.MM.YYYY"),
+        weekday: dniTygodnia[m.day()],
+        time: r.time_service.slice(0, 5),
+        service: r.name_service,
+      };
+    });
+
+    return formatted;
+  } catch (error) {
+    console.error("Błąd w getReadingsByDate:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   getUserByCardIdAndIdPar,
   getServicesByTimeStamp,
@@ -1483,7 +1754,13 @@ module.exports = {
   getRankingAll,
   getRankingYear,
   getRankingMonth,
-  getRecentReadings,
   getUsersForMeating,
   saveMeatingResults,
+  getScheduleData,
+  saveScheduleToDB,
+  getRecentReadings,
+  getRecentReadings30,
+  getUsersFromParish,
+  getUserRecentReadings,
+  getReadingsByDate,
 };

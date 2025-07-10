@@ -30,6 +30,12 @@ const {
   getRecentReadings,
   getUsersForMeating,
   saveMeatingResults,
+  getScheduleData,
+  saveScheduleToDB,
+  getRecentReadings30,
+  getUsersFromParish,
+  getUserRecentReadings,
+  getReadingsByDate,
 } = require("./db");
 const { log } = require("debug");
 const router = express.Router();
@@ -252,5 +258,70 @@ router.post("/submit-meating-results", authenticateToken, async (req, res) => {
   const cardId = req.user.card_id;
   const { results } = req.body;
   await saveMeatingResults(cardId, results, res);
+});
+router.post("/get-schedule-data", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  try {
+    const results = await getScheduleData(cardId);
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Błąd pobierania danych do harmonogramu:", error);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
+router.post("/save-schedule", authenticateToken, async (req, res) => {
+  try {
+    const { date_from, date_to, schedule } = req.body;
+
+    if (!date_from || !date_to || !Array.isArray(schedule)) {
+      return res.status(400).json({ message: "Nieprawidłowe dane wejściowe" });
+    }
+
+    await saveScheduleToDB(date_from, date_to, schedule);
+
+    res.status(200).json({ message: "Harmonogram zapisany pomyślnie" });
+  } catch (err) {
+    console.error("Błąd zapisu harmonogramu:", err);
+    res
+      .status(500)
+      .json({ message: "Błąd serwera podczas zapisywania harmonogramu" });
+  }
+});
+router.post("/get-recent-readings30", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  try {
+    const readings = await getRecentReadings30(cardId);
+    const users = await getUsersFromParish(cardId);
+    res.status(200).json({ readings, users });
+  } catch (error) {
+    console.error("Błąd pobierania danych do harmonogramu:", error);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
+
+router.post(
+  "/get-user-recent-readings",
+  authenticateToken,
+  async (req, res) => {
+    const { cardId } = req.body;
+    try {
+      const readings = await getUserRecentReadings(cardId);
+      return res.status(200).json(readings);
+    } catch (error) {
+      console.error("Błąd pobierania odczytów dla usera ", error);
+      res.status(500).json({ message: "Błąd serwera" });
+    }
+  }
+);
+router.post("/get-readings-by-date", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const date = req.body;
+  try {
+    const readings = await getReadingsByDate(cardId, date);
+    res.status(200).json(readings);
+  } catch (error) {
+    console.error("Błąd pobierania danych :", error);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
 });
 module.exports = router;
