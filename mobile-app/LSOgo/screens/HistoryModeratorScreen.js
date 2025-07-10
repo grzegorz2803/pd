@@ -15,6 +15,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import { getRecentReadings } from "../utils/api";
+import { getUserRecentReadings } from "../utils/api";
 
 const formatDate = (date) => {
   const d = new Date(date);
@@ -26,7 +27,7 @@ const formatDate = (date) => {
 
 const mockReadings = [
   {
-    id: 1,
+    id: "1050177083521",
     name: "Jan Kowalski",
     time: "06:30",
     date: "2025-07-01",
@@ -47,11 +48,6 @@ const mockReadings = [
     mass: "Msza dziękczynna",
   },
 ];
-const userList = [
-  { id: "1050177083521", name: "Piotr Wiśniewski" },
-  { id: "1050529798272", name: "Jan Kowalski" },
-  { id: "158653716531", name: "Łukasz Dąbrowski" },
-];
 
 export default function HistoryModeratorScreen({ navigation }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -60,13 +56,16 @@ export default function HistoryModeratorScreen({ navigation }) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isPickerVisible, setPickerVisible] = useState(false);
   const [recentReadings, setRecentReadings] = useState([]);
+  const [userList, setUserList] = useState([]);
+  const [userReadings, setUserReadings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReadings = async () => {
       try {
-        const readings = await getRecentReadings();
+        const { readings, users } = await getRecentReadings();
         setRecentReadings(readings);
+        setUserList(users);
       } catch (error) {
         console.error("Błąd pobierania odczytów:", error);
       } finally {
@@ -147,6 +146,13 @@ export default function HistoryModeratorScreen({ navigation }) {
                         onPress={() => {
                           setSelectedUserId(item.id);
                           setShowUserDropdown(false);
+                          getUserRecentReadings(item.id)
+                            .then((readings) => {
+                              setUserReadings(readings);
+                            })
+                            .catch((err) => {
+                              console.error("Błąd odczytu użytkownika:", err);
+                            });
                         }}
                         style={styles.dropdownItem}
                       >
@@ -163,17 +169,14 @@ export default function HistoryModeratorScreen({ navigation }) {
                 </View>
               </View>
             </Modal>
-
-            {selectedUserId &&
-              mockUserHistory.map((r, i) => (
-                <View key={i} style={styles.entryBox}>
-                  <View style={styles.rowBetween}>
-                    <Text style={styles.dateDay}>{r.date}</Text>
-                  </View>
-                  <Text style={styles.serviceName}>{r.mass}</Text>
-                  <Text style={styles.time}>{r.time}</Text>
-                </View>
-              ))}
+            {userReadings.map((r, index) => (
+              <View key={index} style={styles.entryBox}>
+                <Text style={styles.dateDay}>
+                  {r.date} • {r.weekday} • {r.time}
+                </Text>
+                <Text style={styles.serviceName}>{r.service}</Text>
+              </View>
+            ))}
           </View>
 
           {/* Sekcja 3 */}

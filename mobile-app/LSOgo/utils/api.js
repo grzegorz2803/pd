@@ -525,6 +525,26 @@ export const getRecentReadings = async () => {
     throw error;
   }
 };
+export const getUserRecentReadings = async (cardId) => {
+  try {
+    const response = await fetchWithAuth(
+      `${BASE_URL}/get-user-recent-readings`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cardId }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok)
+      throw new Error(data.message || "Błąd pobierania odczytów użytkownika");
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
