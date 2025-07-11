@@ -36,6 +36,7 @@ const {
     getUsersFromParish,
     getUserRecentReadings,
     getReadingsByDate,
+    sendModeratorMessage,
 } = require('./db')
 const {log} = require("debug");
 const router = express.Router();
@@ -308,4 +309,21 @@ router.post('/get-readings-by-date',authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Błąd serwera" });
     }
 });
+router.post('/send-message-moderator', authenticateToken, async (req, res) => {
+    const senderCardId = req.user.card_id;
+    const { subject, body, recipient_id } = req.body;
+
+    if (!subject || !body) {
+        return res.status(400).json({ message: "Tytuł i treść są wymagane" });
+    }
+
+    try {
+        await sendModeratorMessage(senderCardId, subject, body, recipient_id);
+        res.status(200).json({ message: "Wiadomość została wysłana" });
+    } catch (error) {
+        console.error("❌ Błąd przy zapisie wiadomości:", error);
+        res.status(500).json({ message: "Błąd serwera podczas zapisu wiadomości" });
+    }
+});
+
 module.exports = router;
