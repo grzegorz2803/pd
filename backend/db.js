@@ -1725,6 +1725,39 @@ const getReadingsByDate = async (cardId, dateObj) => {
     throw error;
   }
 };
+async function sendModeratorMessage(
+  senderCardId,
+  subject,
+  body,
+  recipientId = null
+) {
+  try {
+    const isReply = 0;
+    const replyTo = null;
+    const hiddenForUser = 0;
+    const hiddenForModerator = 0;
+
+    await pool.execute(
+      `
+      INSERT INTO messages 
+        (sender_id, recipient_id, subject, body, is_reply, reply_to, created_at, hidden_for_user, hidden_for_moderator)
+      VALUES ('MODERATOR', ?, ?, ?, ?, ?, NOW(), ?, ?)
+      `,
+      [
+        recipientId,
+        subject,
+        body,
+        isReply,
+        replyTo,
+        hiddenForUser,
+        hiddenForModerator,
+      ]
+    );
+  } catch (error) {
+    console.error("❌ Błąd podczas zapisu wiadomości do bazy:", error);
+    throw error;
+  }
+}
 
 module.exports = {
   getUserByCardIdAndIdPar,
@@ -1763,4 +1796,5 @@ module.exports = {
   getUsersFromParish,
   getUserRecentReadings,
   getReadingsByDate,
+  sendModeratorMessage,
 };
