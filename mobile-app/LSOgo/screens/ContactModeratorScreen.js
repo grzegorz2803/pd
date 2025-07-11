@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,27 +13,44 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
-
-const mockUserList = [
-  { id: "1050177083521", name: "Piotr Wiśniewski" },
-  { id: "1050529798272", name: "Jan Kowalski" },
-  { id: "158653716531", name: "Łukasz Dąbrowski" },
-];
+import { getUsersForMeating } from "../utils/api";
+import { sendModeratorMessage } from "../utils/api";
 
 export default function ContactModeratorScreen({ navigation }) {
   const [recipientId, setRecipientId] = useState(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [messageTitle, setMessageTitle] = useState("");
   const [messageContent, setMessageContent] = useState("");
+  const [userList, setUserList] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
 
-  const selectedUser = mockUserList.find((u) => u.id === recipientId);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const users = await getUsersForMeating();
+        setUserList(users.users);
+      } catch (err) {
+        console.error("Błąd ładowania listy użytkowników:", err);
+      }
+    };
 
-  const handleSend = () => {
-    console.log("Wysyłanie wiadomości...");
-    console.log("Tytuł:", messageTitle);
-    console.log("Treść:", messageContent);
-    console.log("Do:", recipientId || "wszyscy");
-    // Tu później dodamy wywołanie API
+    fetchUsers();
+  }, []);
+
+  const handleSend = async () => {
+    const odbiorca = selectedUserId
+      ? userList.find((u) => u.card_id === selectedUserId)
+      : null;
+
+    try {
+      await sendModeratorMessage(messageTitle, messageContent, selectedUserId);
+      console.log("✅ Wiadomość wysłana pomyślnie");
+      setMessageTitle("");
+      setMessageContent("");
+      setSelectedUserId(null);
+    } catch (err) {
+      console.error("❌ Błąd przy wysyłaniu:", err);
+    }
   };
 
   return (
@@ -47,14 +64,20 @@ export default function ContactModeratorScreen({ navigation }) {
           <Text style={styles.title}>Wiadomość do użytkowników</Text>
 
           {/* Odbiorca */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Odbiorca</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={styles.label}>Wybierz odbiorcę:</Text>
             <TouchableOpacity
-              onPress={() => setShowUserDropdown(true)}
               style={styles.dropdownButton}
+              onPress={() => setShowUserDropdown(true)}
             >
               <Text style={styles.dropdownButtonText}>
-                {selectedUser ? selectedUser.name : "Wszyscy użytkownicy"}
+                {selectedUserId
+                  ? userList.find((u) => u.card_id === selectedUserId)
+                      ?.first_name +
+                    " " +
+                    userList.find((u) => u.card_id === selectedUserId)
+                      ?.last_name
+                  : "Wszyscy użytkownicy"}
               </Text>
             </TouchableOpacity>
 
@@ -62,37 +85,30 @@ export default function ContactModeratorScreen({ navigation }) {
               <View style={styles.modalOverlay}>
                 <View style={styles.modalDropdown}>
                   <FlatList
-                    data={mockUserList}
-                    keyExtractor={(item) => item.id}
+                    data={[
+                      {
+                        card_id: null,
+                        first_name: "",
+                        last_name: "Wszyscy użytkownicy",
+                      },
+                      ...(Array.isArray(userList) ? userList : []),
+                    ]}
+                    keyExtractor={(item) => item.card_id ?? "all"}
                     renderItem={({ item }) => (
                       <TouchableOpacity
                         onPress={() => {
-                          setRecipientId(item.id);
+                          setSelectedUserId(item.card_id);
                           setShowUserDropdown(false);
                         }}
                         style={styles.dropdownItem}
                       >
-                        <Text style={styles.dropdownItemText}>{item.name}</Text>
-                      </TouchableOpacity>
-                    )}
-                    ListFooterComponent={
-                      <TouchableOpacity
-                        onPress={() => {
-                          setRecipientId(null);
-                          setShowUserDropdown(false);
-                        }}
-                        style={styles.dropdownItem}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownItemText,
-                            { fontWeight: "bold" },
-                          ]}
-                        >
-                          Wszyscy użytkownicy
+                        <Text style={styles.dropdownItemText}>
+                          {item.card_id
+                            ? `${item.first_name} ${item.last_name}`
+                            : item.last_name}
                         </Text>
                       </TouchableOpacity>
-                    }
+                    )}
                   />
                   <TouchableOpacity
                     onPress={() => setShowUserDropdown(false)}
@@ -104,7 +120,6 @@ export default function ContactModeratorScreen({ navigation }) {
               </View>
             </Modal>
           </View>
-
           {/* Tytuł */}
           <View style={styles.section}>
             <Text style={styles.label}>Tytuł wiadomości</Text>
