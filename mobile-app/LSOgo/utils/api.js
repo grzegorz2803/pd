@@ -564,6 +564,31 @@ export const getReadingsByDate = async (date) => {
     throw error;
   }
 };
+export const sendModeratorMessage = async (title, body, recipientCardId) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/send-message-moderator`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        subject: title,
+        body,
+        recipient_id: recipientCardId || null,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok)
+      throw new Error(data.message || "Nie udało się wysłać wiadomości");
+
+    return data;
+  } catch (error) {
+    console.error("Błąd wysyłania wiadomości:", error);
+    throw error;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
