@@ -621,6 +621,46 @@ export const sendReportByEmail = async ({ mode, month, year }) => {
     throw error;
   }
 };
+export const addService = async ({
+  name,
+  hour,
+  points,
+  date,
+  day_of_week,
+  month_from,
+  month_to,
+}) => {
+  try {
+    const payload = {
+      name,
+      hour,
+      points: parseInt(points),
+      ...(date && { date }), // tylko jeśli podano
+      ...(day_of_week && { day_of_week }),
+      ...(month_from && { month_from }),
+      ...(month_to && { month_to }),
+    };
+
+    const response = await fetchWithAuth(`${BASE_URL}/add-service`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd dodawania nabożeństwa");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Błąd dodawania nabożeństwa:", error);
+    throw error;
+  }
+};
 
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
