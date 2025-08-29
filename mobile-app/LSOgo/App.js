@@ -22,6 +22,7 @@ import MeatingScreen from "./screens/MeatingScreen";
 import ScheduleScreen from "./screens/ScheduleScreen";
 import HistoryModeratorScreen from "./screens/HistoryModeratorScreen";
 import ContactModeratorScreen from "./screens/ContactModeratorScreen";
+import RaportsScreen from "./screens/ReportsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -56,6 +57,7 @@ export default function App() {
             <Stack.Screen name="Meating" component={MeatingScreen} />
             <Stack.Screen name="Schedule" component={ScheduleScreen} />
             <Stack.Screen name="ContactM" component={ContactModeratorScreen} />
+            <Stack.Screen name="Raport" component={RaportsScreen} />
             <Stack.Screen
               name="MoreModerator"
               component={MoreModeratorScreen}

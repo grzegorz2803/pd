@@ -5,8 +5,11 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
+const { logout } = useContext(AuthContext);
 
 export async function isServerAvailable() {
   try {
@@ -623,6 +626,7 @@ export const fetchWithAuth = async (url, options = {}) => {
       });
     } else {
       await AsyncStorage.clear();
+      await logout();
       throw new Error("Sesja wygasła. Zaloguj się ponownie");
     }
   }
