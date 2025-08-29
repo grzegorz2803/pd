@@ -325,5 +325,58 @@ router.post('/send-message-moderator', authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Błąd serwera podczas zapisu wiadomości" });
     }
 });
+router.post('/send-report', authenticateToken, async (req,res)=>{
+    const cardId = req.user.card_id;
+    const { email, mode, month, year } = req.body;
+
+    if (!email || !mode || !year || (mode === 'monthly' && month === undefined)) {
+        return res.status(400).json({ message: "Brak wymaganych danych" });
+    }
+
+    try {
+        // 1. FAKE `res` żeby przechwycić dane z Twoich funkcji
+        let rankingData = null;
+        const fakeRes = {
+            status(code) {
+                this.statusCode = code;
+                return this;
+            },
+            json(data) {
+                if (data?.monthlyRanking) {
+                    rankingData = data.monthlyRanking;
+                } else if (data?.yearlyRanking) {
+                    rankingData = data.yearlyRanking;
+                } else {
+                    rankingData = null;
+                }
+                return this;
+            },
+        };
+
+        // 2. Użycie funkcji bez ich przerabiania
+        if (mode === "monthly") {
+            await getRankingMonth(cardId, month, year, fakeRes);
+        } else if (mode === "yearly") {
+            await getRankingYear(cardId, year, fakeRes);
+        }
+
+        // 3. Jeśli nie ma danych
+        if (!rankingData || rankingData.length === 0) {
+            return res.status(404).json({ message: "Brak danych do wysłania raportu" });
+        }
+
+        // // 4. Tutaj generujesz plik PDF/CSV, np.:
+        // const fileBuffer = await generateReportFile(rankingData, mode, month, year);
+        //
+        // // 5. Wysyłka maila
+        // await sendEmailWithAttachment(email, fileBuffer, `raport-${mode}.pdf`);
+
+        return res.status(200).json({ message: "Raport został wysłany" });
+
+    } catch (error) {
+        console.error("❌ Błąd generowania raportu:", error);
+        return res.status(500).json({ message: "Błąd serwera podczas wysyłania raportu" });
+    }
+})
 
 module.exports = router;

@@ -1231,6 +1231,7 @@ async function saveMeatingResults(cardId,results, res){
 
 
         const parishID = userRow[0].id_parish;
+        await checkIfTableExists(parishID);
         const tableName = `${parishID}_readings`;
         const insertValues = results
             .map(() => "(?, NOW(), NOW(), ?, NOW(), ?)")
