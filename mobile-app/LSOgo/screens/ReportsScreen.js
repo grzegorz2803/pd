@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
-
+import { sendReportByEmail } from "../utils/api";
 const months = [
   { label: "Styczeń", value: "01" },
   { label: "Luty", value: "02" },
@@ -40,7 +40,7 @@ const getMonthLabel = (value) => {
 export default function RaportsScreen({ navigation }) {
   const [mode, setMode] = useState("monthly");
   const [selectedMonth, setSelectedMonth] = useState("01");
-  const [email, setEmail] = useState("uzytkownik@example.com");
+  const [email, setEmail] = useState("przypisany do konta uytkownika");
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [newEmail, setNewEmail] = useState(email);
 
@@ -53,7 +53,19 @@ export default function RaportsScreen({ navigation }) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
-
+  const handleSendReport = async () => {
+    try {
+      await sendReportByEmail({
+        mode, // "monthly" lub "yearly"
+        month: mode === "monthly" ? selectedMonth : undefined,
+        year: selectedYear,
+        email,
+      });
+      alert("Raport został wysłany na adres e-mail");
+    } catch (error) {
+      alert("Błąd wysyłania raportu: " + error.message);
+    }
+  };
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -121,7 +133,7 @@ export default function RaportsScreen({ navigation }) {
           </View>
           <View style={styles.emailInfoBox}>
             <Text style={styles.emailText}>
-              Raport zostanie wysłany na adres:
+              Raport zostanie wysłany na adres
             </Text>
             <Text style={styles.emailAddress}>{email}</Text>
 
@@ -133,15 +145,7 @@ export default function RaportsScreen({ navigation }) {
           {/* Przycisk generowania */}
           <TouchableOpacity
             style={styles.generateButton}
-            onPress={() => {
-              const reportText =
-                mode === "monthly"
-                  ? `Generuję raport za ${getMonthLabel(
-                      selectedMonth
-                    )} ${selectedYear}`
-                  : `Generuję raport za rok ${selectedYear}`;
-              alert(reportText);
-            }}
+            onPress={handleSendReport}
           >
             <Text style={styles.generateButtonText}>Generuj raport</Text>
           </TouchableOpacity>
