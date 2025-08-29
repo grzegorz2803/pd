@@ -597,7 +597,6 @@ export const sendReportByEmail = async ({ mode, month, year, email }) => {
     const payload = {
       type: mode, // "monthly" lub "yearly"
       year,
-      email,
       ...(mode === "monthly" && { month }), // tylko jeśli miesięczny
     };
 

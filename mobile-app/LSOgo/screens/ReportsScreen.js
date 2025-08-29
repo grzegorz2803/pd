@@ -40,9 +40,6 @@ const getMonthLabel = (value) => {
 export default function RaportsScreen({ navigation }) {
   const [mode, setMode] = useState("monthly");
   const [selectedMonth, setSelectedMonth] = useState("01");
-  const [email, setEmail] = useState("przypisany do konta uytkownika");
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [newEmail, setNewEmail] = useState(email);
 
   const [selectedYear, setSelectedYear] = useState(
     new Date().getFullYear().toString()
@@ -59,7 +56,6 @@ export default function RaportsScreen({ navigation }) {
         mode, // "monthly" lub "yearly"
         month: mode === "monthly" ? selectedMonth : undefined,
         year: selectedYear,
-        email,
       });
       alert("Raport został wysłany na adres e-mail");
     } catch (error) {
@@ -131,16 +127,6 @@ export default function RaportsScreen({ navigation }) {
               <Text style={styles.value}>{selectedYear}</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.emailInfoBox}>
-            <Text style={styles.emailText}>
-              Raport zostanie wysłany na adres
-            </Text>
-            <Text style={styles.emailAddress}>{email}</Text>
-
-            <TouchableOpacity onPress={() => setShowEmailModal(true)}>
-              <Text style={styles.changeEmailText}>Zmień e-mail</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Przycisk generowania */}
           <TouchableOpacity
@@ -185,36 +171,6 @@ export default function RaportsScreen({ navigation }) {
                   <Text style={styles.modalOption}>{y}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-          </View>
-        </Modal>
-        <Modal visible={showEmailModal} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Zmień adres e-mail</Text>
-              <TextInput
-                style={styles.input}
-                value={newEmail}
-                onChangeText={setNewEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder="nowy@email.com"
-                placeholderTextColor="#a67c52"
-              />
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={() => {
-                  if (!validateEmail(newEmail)) {
-                    alert("Wprowadź poprawny adres e-mail.");
-                    return;
-                  }
-                  setEmail(newEmail);
-                  setShowEmailModal(false);
-                }}
-              >
-                <Text style={styles.confirmButtonText}>OK</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>
