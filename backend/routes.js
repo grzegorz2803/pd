@@ -37,6 +37,7 @@ const {
     getUserRecentReadings,
     getReadingsByDate,
     sendModeratorMessage,
+    sendReportEmail,
 } = require('./db')
 const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
@@ -365,20 +366,9 @@ router.post('/send-report', authenticateToken, async (req,res)=>{
             return res.status(404).json({ message: "Brak danych do wysłania raportu" });
         }
 
-        // 4. Tutaj generujesz plik PDF/CSV, np.:
-        // const fileBuffer =
-        generateReportFile(rankingData, type, month, year)
-            .then((filePath) => {
-                console.log(`✅ PDF gotowy: ${filePath}`);
-                // możesz tu też odesłać plik przez res.sendFile(filePath) lub res.download()
-            })
-            .catch((err) => {
-                console.error("❌ Błąd generowania PDF:", err);
-            });
 
-
-        // // 5. Wysyłka maila
-        // await sendEmailWithAttachment(email, fileBuffer, `raport-${type}.pdf`);
+        const { buffer, filename } = await generateReportFile(rankingData, type, month, year);
+        await sendReportEmail(buffer, filename);
 
         return res.status(200).json({ message: "Raport został wysłany" });
 

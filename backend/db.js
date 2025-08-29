@@ -1617,6 +1617,29 @@ async function sendModeratorMessage(senderCardId, subject, body, recipientId = n
     }
 }
 
+async function sendReportEmail(buffer, filename) {
+    try {
+        const mailOptions = {
+            from: '"LSOgo System" <twojEmail@gmail.com>',
+            to: "listwan94@gmail.com", // 🟢 docelowo dynamicznie z konta
+            subject: "Raport LSOgo "+filename,
+            text: "W załączeniu znajduje się " + filename,
+            attachments: [
+                {
+                    filename,
+                    content: buffer,
+                    contentType: 'application/pdf'
+                }
+            ]
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("✅ E-mail wysłany:", info.response);
+    } catch (err) {
+        console.error("❌ Błąd wysyłania e-maila:", err);
+        throw err;
+    }
+}
 
 module.exports = {
     getUserByCardIdAndIdPar,
@@ -1656,4 +1679,5 @@ module.exports = {
     getUserRecentReadings,
     getReadingsByDate,
     sendModeratorMessage,
+    sendReportEmail,
 };

@@ -1,55 +1,47 @@
 const PDFDocument = require("pdfkit");
-const fs = require("fs");
 const path = require("path");
 
-function generateReportFile(rankingData, type, month, year) {
+async function generateReportFile(rankingData, type, month, year) {
     return new Promise((resolve, reject) => {
         try {
-            const doc = new PDFDocument({ margin: 50 });
-            const fileName =
-                type === "monthly"
-                    ? `ranking_miesieczny_${month}_${year}.pdf`
-                    : `ranking_roczny_${year}.pdf`;
+            const doc = new PDFDocument({ margin: 40, size: "A4" });
+            const chunks = [];
+
+            // Czcionka
             const fontPath = path.join(__dirname, "assets/fonts/Roboto-Regular.ttf");
-
-            const writeStream = fs.createWriteStream(fileName);
-            doc.pipe(writeStream);
-
             doc.registerFont("Roboto", fontPath);
             doc.font("Roboto");
 
-            const title =
-                type === "monthly"
-                    ? `Ranking Miesięczny - ${month}/${year}`
-                    : `Ranking Roczny - ${year}`;
+            // Zbieranie danych do bufora
+            doc.on("data", chunk => chunks.push(chunk));
+            doc.on("end", () => {
+                const buffer = Buffer.concat(chunks);
+                const filename = `raport-${type==="yearly"?"":month}-${year}.pdf`;
+                resolve({ buffer, filename });
+            });
 
-            doc.fontSize(20).text(title, { align: "center" }).moveDown(1);
+            // Tytuł
+            const title = `Ranking ${type === "yearly" ? "Roczny" : "Miesięczny"} - ${year}${type === "monthly" ? ` / ${month}` : ""}`;
+            doc.fontSize(20).text(title, { align: "center" });
+            doc.moveDown();
 
-            // 📌 Ustal pozycje kolumn
-            const xLp = 50;
-            const xName = 100;
-            const xService = 300;
-            const xMeetings = 370;
-            const xTotal = 440;
+            // Nagłówki kolumn
+            const xLp = 50, xName = 100, xService = 300, xMeetings = 370, xTotal = 440;
 
-            // 🧾 Nagłówki
             doc.fontSize(14).font("Roboto");
-
-            const headerY = doc.y; // Zapamiętaj wspólne Y
-
+            const headerY = doc.y;
             doc.text("Lp.", xLp, headerY);
             doc.text("Imię i nazwisko", xName, headerY);
             doc.text("Służba", xService, headerY);
             doc.text("Zbiórki", xMeetings, headerY);
             doc.text("Suma", xTotal, headerY);
+            doc.moveDown(1);
 
-            doc.moveDown(1); // Odstęp po nagłówkach
-
-            // 📊 Dane
+            // Dane w tabeli
             rankingData.forEach((item, index) => {
                 const y = doc.y;
 
-                // 🏅 Kolor tła wiersza dla top 3
+                // Kolor tła dla top 3
                 let fillColor = null;
                 if (index === 0) fillColor = '#FFD700';     // złoto
                 else if (index === 1) fillColor = '#C0C0C0'; // srebro
@@ -59,35 +51,26 @@ function generateReportFile(rankingData, type, month, year) {
                     doc.rect(45, y - 2, 500, 18).fill(fillColor).fillColor("black");
                 }
 
-                // 🔴 Kolor czcionki, jeśli suma < 0
                 const textColor = item.total < 0 ? '#FF0000' : 'black';
                 doc.fillColor(textColor).fontSize(12);
 
-                doc.text(`${index + 1}.`, 50, y);
-                doc.text(item.name, 100, y);
-                doc.text(item.service, 300, y);
-                doc.text(item.meetings, 370, y);
-                doc.text(item.total, 440, y);
+                doc.text(`${index + 1}.`, xLp, y);
+                doc.text(item.name, xName, y);
+                doc.text(item.service, xService, y);
+                doc.text(item.meetings, xMeetings, y);
+                doc.text(item.total, xTotal, y);
 
-                doc.fillColor("black"); // Przywróć domyślny kolor
+                doc.fillColor("black");
                 doc.moveDown(0.5);
             });
 
-
-            doc.end();
-
-            writeStream.on("finish", () => {
-                console.log(`✅ PDF zapisany jako ${fileName}`);
-                resolve(fileName);
-            });
-
-            writeStream.on("error", (err) => {
-                reject(err);
-            });
+            doc.end(); // 🔴 To musi być ostatnie
         } catch (err) {
             reject(err);
         }
     });
 }
 
-module.exports = { generateReportFile };
+module.exports = {
+    generateReportFile,
+};
