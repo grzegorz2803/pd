@@ -5,8 +5,11 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 
 const BASE_URL = "http://192.168.1.193:3000/api";
+// const { logout } = useContext(AuthContext);
 
 export async function isServerAvailable() {
   try {
@@ -589,6 +592,36 @@ export const sendModeratorMessage = async (title, body, recipientCardId) => {
     throw error;
   }
 };
+export const sendReportByEmail = async ({ mode, month, year }) => {
+  console.log(mode, month, year);
+  try {
+    const payload = {
+      type: mode, // "monthly" lub "yearly"
+      year,
+      ...(mode === "monthly" && { month }), // tylko jeśli miesięczny
+    };
+
+    const response = await fetchWithAuth(`${BASE_URL}/send-report`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd wysyłania raportu");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Błąd wysyłania raportu:", error);
+    throw error;
+  }
+};
+
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
@@ -623,6 +656,7 @@ export const fetchWithAuth = async (url, options = {}) => {
       });
     } else {
       await AsyncStorage.clear();
+      // await logout();
       throw new Error("Sesja wygasła. Zaloguj się ponownie");
     }
   }
