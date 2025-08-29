@@ -37,7 +37,9 @@ const {
   getUserRecentReadings,
   getReadingsByDate,
   sendModeratorMessage,
+  sendReportEmail,
 } = require("./db");
+const { generateReportFile } = require("./functions");
 const { log } = require("debug");
 const router = express.Router();
 const authenticateToken = require("./middleware/authenticateToken");
@@ -339,6 +341,63 @@ router.post("/send-message-moderator", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("❌ Błąd przy zapisie wiadomości:", error);
     res.status(500).json({ message: "Błąd serwera podczas zapisu wiadomości" });
+  }
+});
+router.post("/send-report", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { type, month, year } = req.body;
+  if (!type || !year || (type === "monthly" && month === undefined)) {
+    return res.status(400).json({ message: "Brak wymaganych danych" });
+  }
+
+  try {
+    // 1. FAKE `res` żeby przechwycić dane z Twoich funkcji
+    let rankingData = null;
+    const fakeRes = {
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(data) {
+        if (data?.monthlyRanking) {
+          rankingData = data.monthlyRanking;
+        } else if (data?.yearlyRanking) {
+          rankingData = data.yearlyRanking;
+        } else {
+          rankingData = null;
+        }
+        return this;
+      },
+    };
+
+    // 2. Użycie funkcji bez ich przerabiania
+    if (type === "monthly") {
+      await getRankingMonth(cardId, month, year, fakeRes);
+    } else if (type === "yearly") {
+      await getRankingYear(cardId, year, fakeRes);
+    }
+
+    // 3. Jeśli nie ma danych
+    if (!rankingData || rankingData.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Brak danych do wysłania raportu" });
+    }
+
+    const { buffer, filename } = await generateReportFile(
+      rankingData,
+      type,
+      month,
+      year
+    );
+    await sendReportEmail(buffer, filename, cardId);
+
+    return res.status(200).json({ message: "Raport został wysłany" });
+  } catch (error) {
+    console.error("❌ Błąd generowania raportu:", error);
+    return res
+      .status(500)
+      .json({ message: "Błąd serwera podczas wysyłania raportu" });
   }
 });
 

@@ -1379,6 +1379,7 @@ async function saveMeatingResults(cardId, results, res) {
     }
 
     const parishID = userRow[0].id_parish;
+    await checkIfTableExists(parishID);
     const tableName = `${parishID}_readings`;
     const insertValues = results
       .map(() => "(?, NOW(), NOW(), ?, NOW(), ?)")
@@ -1758,6 +1759,46 @@ async function sendModeratorMessage(
     throw error;
   }
 }
+async function getEmailByCardId(cardId) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT email FROM auth WHERE card_id = ? LIMIT 1`,
+      [cardId]
+    );
+
+    if (rows.length === 0) {
+      return null; // nie znaleziono
+    }
+
+    return rows[0].email;
+  } catch (err) {
+    console.error("❌ Błąd podczas pobierania e-maila:", err);
+    throw err;
+  }
+}
+async function sendReportEmail(buffer, filename, cardId) {
+  try {
+    const email = await getEmailByCardId(cardId);
+    const mailOptions = {
+      from: '"LSOgo System" <twojEmail@gmail.com>',
+      to: email,
+      subject: "Raport LSOgo " + filename,
+      text: "W załączeniu znajduje się " + filename,
+      attachments: [
+        {
+          filename,
+          content: buffer,
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.error("❌ Błąd wysyłania e-maila:", err);
+    throw err;
+  }
+}
 
 module.exports = {
   getUserByCardIdAndIdPar,
@@ -1797,4 +1838,5 @@ module.exports = {
   getUserRecentReadings,
   getReadingsByDate,
   sendModeratorMessage,
+  sendReportEmail,
 };
