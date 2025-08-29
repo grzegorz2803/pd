@@ -592,7 +592,8 @@ export const sendModeratorMessage = async (title, body, recipientCardId) => {
     throw error;
   }
 };
-export const sendReportByEmail = async ({ mode, month, year, email }) => {
+export const sendReportByEmail = async ({ mode, month, year }) => {
+  console.log(mode, month, year);
   try {
     const payload = {
       type: mode, // "monthly" lub "yearly"
