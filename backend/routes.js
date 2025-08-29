@@ -327,9 +327,9 @@ router.post('/send-message-moderator', authenticateToken, async (req, res) => {
 });
 router.post('/send-report', authenticateToken, async (req,res)=>{
     const cardId = req.user.card_id;
-    const { email, mode, month, year } = req.body;
-
-    if (!email || !mode || !year || (mode === 'monthly' && month === undefined)) {
+    const {  mode, month, year } = req.body;
+console.log(mode, year,month);
+    if (!mode || !year || (mode === 'monthly' && month === undefined)) {
         return res.status(400).json({ message: "Brak wymaganych danych" });
     }
 
