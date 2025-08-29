@@ -1656,7 +1656,45 @@ async function sendReportEmail(buffer, filename, cardId) {
         throw err;
     }
 }
+async function addService(cardId, name, hour, points, date, day_of_week, month_from, month_to){
+    try {
+        /// Krok 1: Pobierz id_parish na podstawie card_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+            [cardId]
+        );
 
+        if (userRow[0] === undefined) {
+            return res.status(404).json({message: "Nie znaleziono parafii"});
+        }
+
+
+        const parishId = userRow[0].id_parish;
+        const tableName = `${parishId}_services`;
+
+        const query = `
+    INSERT INTO ${tableName}
+    (name, time_service, date_service, day_of_week, month_from, month_to, priority, points)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+        const values = [
+            name,
+            hour,
+            date || null,
+            day_of_week || null,
+            month_from || null,
+            month_to || null,
+            1,
+            points,
+        ];
+        await pool.query(query, values);
+    }catch (error) {
+        console.error("Błąd w AddService:", error);
+        throw error;
+    }
+}
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1696,4 +1734,5 @@ module.exports = {
     getReadingsByDate,
     sendModeratorMessage,
     sendReportEmail,
+    addService,
 };

@@ -38,6 +38,7 @@ const {
     getReadingsByDate,
     sendModeratorMessage,
     sendReportEmail,
+    addService,
 } = require('./db')
 const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
@@ -377,25 +378,20 @@ router.post('/send-report', authenticateToken, async (req,res)=>{
         return res.status(500).json({ message: "Błąd serwera podczas wysyłania raportu" });
     }
 })
-router.post("/add-service", authenticateToken,  (req, res) => {
+router.post("/add-service", authenticateToken, async (req, res) => {
+    const cardId = req.user.card_id;
     const { name, hour, points, date, day_of_week, month_from, month_to } = req.body;
 
     // Podstawowa walidacja pól wymaganych
     if (!name || !hour || points === undefined) {
         return res.status(400).json({ message: "Brakuje wymaganych pól (nazwa, godzina, punkty)" });
     }
-
-    // Wyświetlenie danych w konsoli
-    console.log("📥 Otrzymano dane nabożeństwa:");
-    console.log("Nazwa:", name);
-    console.log("Godzina:", hour);
-    console.log("Punkty:", points);
-    if (date) console.log("Data:", date);
-    if (day_of_week) console.log("Dzień tygodnia:", day_of_week);
-    if (month_from) console.log("Miesiąc od:", month_from);
-    if (month_to) console.log("Miesiąc do:", month_to);
-
-    // Odpowiedź
-    res.status(200).json({ message: "Dane nabożeństwa odebrane pomyślnie" });
+    try {
+        await addService(cardId, name, hour, points, date, day_of_week, month_from, month_to);
+        res.status(200).json({ message: "Dane nabożeństwa dodane pomyślnie" });
+    } catch (err) {
+        console.error("Błąd dodawania nabożeństwa:", err);
+        res.status(500).json({ message: "Wystąpił błąd serwera przy dodawaniu nabożeństwa" });
+    }
 });
 module.exports = router;
