@@ -38,6 +38,7 @@ const {
     getReadingsByDate,
     sendModeratorMessage,
 } = require('./db')
+const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
 const router = express.Router();
 const authenticateToken = require('./middleware/authenticateToken');
@@ -327,9 +328,8 @@ router.post('/send-message-moderator', authenticateToken, async (req, res) => {
 });
 router.post('/send-report', authenticateToken, async (req,res)=>{
     const cardId = req.user.card_id;
-    const {  mode, month, year } = req.body;
-console.log(mode, year,month);
-    if (!mode || !year || (mode === 'monthly' && month === undefined)) {
+    const { type, month, year } = req.body;
+    if (!type || !year || (type === 'monthly' && month === undefined)) {
         return res.status(400).json({ message: "Brak wymaganych danych" });
     }
 
@@ -354,9 +354,9 @@ console.log(mode, year,month);
         };
 
         // 2. Użycie funkcji bez ich przerabiania
-        if (mode === "monthly") {
+        if (type === "monthly") {
             await getRankingMonth(cardId, month, year, fakeRes);
-        } else if (mode === "yearly") {
+        } else if (type === "yearly") {
             await getRankingYear(cardId, year, fakeRes);
         }
 
@@ -365,11 +365,20 @@ console.log(mode, year,month);
             return res.status(404).json({ message: "Brak danych do wysłania raportu" });
         }
 
-        // // 4. Tutaj generujesz plik PDF/CSV, np.:
-        // const fileBuffer = await generateReportFile(rankingData, mode, month, year);
-        //
+        // 4. Tutaj generujesz plik PDF/CSV, np.:
+        // const fileBuffer =
+        generateReportFile(rankingData, type, month, year)
+            .then((filePath) => {
+                console.log(`✅ PDF gotowy: ${filePath}`);
+                // możesz tu też odesłać plik przez res.sendFile(filePath) lub res.download()
+            })
+            .catch((err) => {
+                console.error("❌ Błąd generowania PDF:", err);
+            });
+
+
         // // 5. Wysyłka maila
-        // await sendEmailWithAttachment(email, fileBuffer, `raport-${mode}.pdf`);
+        // await sendEmailWithAttachment(email, fileBuffer, `raport-${type}.pdf`);
 
         return res.status(200).json({ message: "Raport został wysłany" });
 
