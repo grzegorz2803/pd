@@ -368,7 +368,7 @@ router.post('/send-report', authenticateToken, async (req,res)=>{
 
 
         const { buffer, filename } = await generateReportFile(rankingData, type, month, year);
-        await sendReportEmail(buffer, filename);
+        await sendReportEmail(buffer, filename, cardId);
 
         return res.status(200).json({ message: "Raport został wysłany" });
 

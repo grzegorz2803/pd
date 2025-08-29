@@ -1616,12 +1616,29 @@ async function sendModeratorMessage(senderCardId, subject, body, recipientId = n
         throw error;
     }
 }
-
-async function sendReportEmail(buffer, filename) {
+async function getEmailByCardId(cardId) {
     try {
+        const [rows] = await pool.execute(
+            `SELECT email FROM auth WHERE card_id = ? LIMIT 1`,
+            [cardId]
+        );
+
+        if (rows.length === 0) {
+            return null; // nie znaleziono
+        }
+
+        return rows[0].email;
+    } catch (err) {
+        console.error("❌ Błąd podczas pobierania e-maila:", err);
+        throw err;
+    }
+}
+async function sendReportEmail(buffer, filename, cardId) {
+    try {
+        const email = await getEmailByCardId(cardId);
         const mailOptions = {
             from: '"LSOgo System" <twojEmail@gmail.com>',
-            to: "listwan94@gmail.com", // 🟢 docelowo dynamicznie z konta
+            to: email,
             subject: "Raport LSOgo "+filename,
             text: "W załączeniu znajduje się " + filename,
             attachments: [
@@ -1634,7 +1651,6 @@ async function sendReportEmail(buffer, filename) {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("✅ E-mail wysłany:", info.response);
     } catch (err) {
         console.error("❌ Błąd wysyłania e-maila:", err);
         throw err;
