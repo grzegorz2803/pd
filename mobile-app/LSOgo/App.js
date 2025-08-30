@@ -24,6 +24,7 @@ import HistoryModeratorScreen from "./screens/HistoryModeratorScreen";
 import ContactModeratorScreen from "./screens/ContactModeratorScreen";
 import RaportsScreen from "./screens/ReportsScreen";
 import AddMassScreen from "./screens/AddMassScreen";
+import NotificationsModeratorScreen from "./screens/NotificationsModeratorScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +66,10 @@ export default function App() {
               component={MoreModeratorScreen}
             />
             <Stack.Screen name="HistoryM" component={HistoryModeratorScreen} />
+            <Stack.Screen
+              name="NModerator"
+              component={NotificationsModeratorScreen}
+            />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
