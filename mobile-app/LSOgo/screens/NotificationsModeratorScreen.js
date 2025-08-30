@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,39 +7,37 @@ import {
   ScrollView,
   TouchableOpacity,
   ImageBackground,
+  ActivityIndicator,
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
+import { getModeratorNotifications } from "../utils/api";
 
 export default function NotificationsModeratorScreen({ navigation }) {
-  // Przykładowe dane
-  const excuses = [
-    {
-      id: 1,
-      name: "Jan Kowalski",
-      date: "2025-08-25",
-      reason: "Byłem chory i miałem gorączkę",
-    },
-    {
-      id: 2,
-      name: "Adam Nowak",
-      date: "2025-08-28",
-      reason: "Rodzinna uroczystość",
-    },
-  ];
+  const [excuseRequests, setExcuseRequests] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const messages = [
-    {
-      id: 1,
-      name: "Karol Malec",
-      content: "Czy można się zapisać na sobotę?",
-    },
-    {
-      id: 2,
-      name: "Piotr Wiśniewski",
-      content: "Dziękuję za pomoc przy zbiórce.",
-    },
-  ];
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await getModeratorNotifications();
+        setExcuseRequests(data.excuseRequests || []);
+        setMessages(data.messages || []);
+      } catch (error) {
+        console.error("Błąd pobierania powiadomień:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  if (loading) {
+    return (
+      <ActivityIndicator style={{ flex: 1 }} size="large" color="#c4a46d" />
+    );
+  }
 
   return (
     <ImageBackground
@@ -53,33 +51,51 @@ export default function NotificationsModeratorScreen({ navigation }) {
 
           {/* Sekcja: Prośby o usprawiedliwienie */}
           <Text style={styles.sectionTitle}>Prośby o usprawiedliwienie</Text>
-          {excuses.map((item) => (
-            <View key={item.id} style={styles.box}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.info}>Data: {item.date}</Text>
-              <Text style={styles.reason}>{item.reason}</Text>
-              <View style={styles.rowButtons}>
-                <TouchableOpacity style={styles.acceptButton}>
-                  <Text style={styles.buttonText}>Akceptuj</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectButton}>
-                  <Text style={styles.buttonText}>Odrzuć</Text>
-                </TouchableOpacity>
+          {excuseRequests.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Brak próśb o usprawiedliwienie.
+            </Text>
+          ) : (
+            excuseRequests.map((item) => (
+              <View key={item.id} style={styles.box}>
+                <Text style={styles.name}>
+                  {item.first_name} {item.last_name}
+                </Text>
+                <Text style={styles.info}>
+                  Data: {item.created_at?.split("T")[0]}
+                </Text>
+                <Text style={styles.reason}>{item.message}</Text>
+                <View style={styles.rowButtons}>
+                  <TouchableOpacity style={styles.acceptButton}>
+                    <Text style={styles.buttonText}>Akceptuj</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.rejectButton}>
+                    <Text style={styles.buttonText}>Odrzuć</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
 
           {/* Sekcja: Wiadomości */}
           <Text style={styles.sectionTitle}>Wiadomości</Text>
-          {messages.map((msg) => (
-            <View key={msg.id} style={styles.box}>
-              <Text style={styles.name}>{msg.name}</Text>
-              <Text style={styles.reason}>{msg.content}</Text>
-              <TouchableOpacity style={styles.replyButton}>
-                <Text style={styles.buttonText}>Odpowiedz</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+          {messages.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Brak wiadomości od użytkowników.
+            </Text>
+          ) : (
+            messages.map((msg) => (
+              <View key={msg.id} style={styles.box}>
+                <Text style={styles.name}>
+                  {msg.first_name} {msg.last_name}
+                </Text>
+                <Text style={styles.reason}>{msg.body}</Text>
+                <TouchableOpacity style={styles.replyButton}>
+                  <Text style={styles.buttonText}>Odpowiedz</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </ScrollView>
         <BottomNavModerator navigation={navigation} />
       </SafeAreaView>
@@ -162,5 +178,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  emptyText: {
+    fontSize: RFValue(14),
+    color: "#666",
+    fontStyle: "italic",
+    marginBottom: RFValue(12),
   },
 });

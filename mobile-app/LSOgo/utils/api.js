@@ -661,7 +661,27 @@ export const addService = async ({
     throw error;
   }
 };
+export const getModeratorNotifications = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-notifications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd pobierania powiadomień");
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Błąd pobierania powiadomień:", err);
+    throw err;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
