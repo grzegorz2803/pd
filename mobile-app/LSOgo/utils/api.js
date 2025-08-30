@@ -621,6 +621,121 @@ export const sendReportByEmail = async ({ mode, month, year }) => {
     throw error;
   }
 };
+export const addService = async ({
+  name,
+  hour,
+  points,
+  date,
+  day_of_week,
+  month_from,
+  month_to,
+}) => {
+  try {
+    const payload = {
+      name,
+      hour,
+      points: parseInt(points),
+      ...(date && { date }),
+      ...(day_of_week && { day_of_week }),
+      ...(month_from && { month_from }),
+      ...(month_to && { month_to }),
+    };
+
+    const response = await fetchWithAuth(`${BASE_URL}/add-service`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd dodawania nabożeństwa");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Błąd dodawania nabożeństwa:", error);
+    throw error;
+  }
+};
+export const getModeratorNotifications = async () => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/get-notifications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd pobierania powiadomień");
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Błąd pobierania powiadomień:", err);
+    throw err;
+  }
+};
+export const updateJustificationStatus = async ({
+  reading_id,
+  card_id,
+  status,
+}) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/update-justification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ reading_id, card_id, status }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd zmiany statusu usprawiedliwienia");
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Błąd zmiany statusu usprawiedliwienia:", err);
+    throw err;
+  }
+};
+export const sendModeratorReply = async ({ replyToId, card_id, body }) => {
+  try {
+    const payload = {
+      replyToId,
+      card_id,
+      body,
+    };
+
+    const response = await fetchWithAuth(`${BASE_URL}/reply-to-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd wysyłania odpowiedzi");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Błąd wysyłania odpowiedzi:", error);
+    throw error;
+  }
+};
 
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
