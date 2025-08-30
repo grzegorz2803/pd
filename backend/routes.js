@@ -41,6 +41,7 @@ const {
     addService,
     getModeratorNotifications,
     updateJustificationStatus,
+    replayToMessage,
 } = require('./db')
 const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
@@ -432,7 +433,7 @@ router.post("/reply-to-message", authenticateToken, async (req, res) => {
         if (!replyToId || !card_id || !body) {
             return res.status(400).json({ message: "Brakuje wymaganych danych." });
         }
-        console.log(moderatorCardId, replyToId, card_id, body);
+        await replayToMessage(moderatorCardId, replyToId, card_id, body);
 
         res.status(200).json({ message: "Odpowiedź została wysłana." });
     } catch (error) {
