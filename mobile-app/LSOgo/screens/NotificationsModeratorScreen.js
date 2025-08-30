@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   View,
   Text,
   StyleSheet,
@@ -38,7 +39,23 @@ export default function NotificationsModeratorScreen({ navigation }) {
       <ActivityIndicator style={{ flex: 1 }} size="large" color="#c4a46d" />
     );
   }
-
+  const handleStatusChange = async (reading_id, card_id, status) => {
+    try {
+      await updateJustificationStatus({ reading_id, card_id, status });
+      Alert.alert(
+        "Sukces",
+        `Prośba została ${
+          status === "accepted" ? "zaakceptowana" : "odrzucona"
+        }.`
+      );
+      loadNotifications();
+    } catch (err) {
+      Alert.alert(
+        "Błąd",
+        err.message || "Nie udało się zaktualizować statusu."
+      );
+    }
+  };
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -66,10 +83,28 @@ export default function NotificationsModeratorScreen({ navigation }) {
                 </Text>
                 <Text style={styles.reason}>{item.message}</Text>
                 <View style={styles.rowButtons}>
-                  <TouchableOpacity style={styles.acceptButton}>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() =>
+                      handleStatusChange(
+                        item.reading_id,
+                        item.card_id,
+                        "accepted"
+                      )
+                    }
+                  >
                     <Text style={styles.buttonText}>Akceptuj</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.rejectButton}>
+                  <TouchableOpacity
+                    style={styles.rejectButton}
+                    onPress={() =>
+                      handleStatusChange(
+                        item.reading_id,
+                        item.card_id,
+                        "rejected"
+                      )
+                    }
+                  >
                     <Text style={styles.buttonText}>Odrzuć</Text>
                   </TouchableOpacity>
                 </View>

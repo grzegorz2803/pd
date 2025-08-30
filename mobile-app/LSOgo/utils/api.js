@@ -682,6 +682,32 @@ export const getModeratorNotifications = async () => {
     throw err;
   }
 };
+export const updateJustificationStatus = async ({
+  reading_id,
+  card_id,
+  status,
+}) => {
+  try {
+    const response = await fetchWithAuth(`${BASE_URL}/update-justification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ reading_id, card_id, status }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd zmiany statusu usprawiedliwienia");
+    }
+
+    return data;
+  } catch (err) {
+    console.error("Błąd zmiany statusu usprawiedliwienia:", err);
+    throw err;
+  }
+};
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {
