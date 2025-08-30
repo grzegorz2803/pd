@@ -708,6 +708,35 @@ export const updateJustificationStatus = async ({
     throw err;
   }
 };
+export const sendModeratorReply = async ({ replyToId, card_id, body }) => {
+  try {
+    const payload = {
+      replyToId,
+      card_id,
+      body,
+    };
+
+    const response = await fetchWithAuth(`${BASE_URL}/reply-to-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Błąd wysyłania odpowiedzi");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Błąd wysyłania odpowiedzi:", error);
+    throw error;
+  }
+};
+
 export const fetchWithAuth = async (url, options = {}) => {
   let token = await AsyncStorage.getItem("userToken");
   let response = await fetch(url, {

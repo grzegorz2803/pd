@@ -9,31 +9,36 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
 import {
   getModeratorNotifications,
   updateJustificationStatus,
+  sendModeratorReply,
 } from "../utils/api";
 
 export default function NotificationsModeratorScreen({ navigation }) {
   const [excuseRequests, setExcuseRequests] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [replyModalVisible, setReplyModalVisible] = useState(false);
+  const [replyMessage, setReplyMessage] = useState("");
+  const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const fetchNotifications = async () => {
+    try {
+      const data = await getModeratorNotifications();
+      setExcuseRequests(data.excuseRequests || []);
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error("Błąd pobierania powiadomień:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await getModeratorNotifications();
-        setExcuseRequests(data.excuseRequests || []);
-        setMessages(data.messages || []);
-      } catch (error) {
-        console.error("Błąd pobierania powiadomień:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchNotifications();
   }, []);
 
@@ -51,7 +56,7 @@ export default function NotificationsModeratorScreen({ navigation }) {
           status === "accepted" ? "zaakceptowana" : "odrzucona"
         }.`
       );
-      loadNotifications();
+      fetchNotifications();
     } catch (err) {
       Alert.alert(
         "Błąd",
@@ -59,6 +64,26 @@ export default function NotificationsModeratorScreen({ navigation }) {
       );
     }
   };
+  const handleSendReply = async () => {
+    if (!replyMessage.trim()) return;
+
+    try {
+      await sendModeratorReply({
+        replyToId: selectedMessage.id,
+        card_id: selectedMessage.sender_id, // <-- to było potrzebne!
+        body: replyMessage,
+      });
+
+      Alert.alert("Sukces", "Odpowiedź została wysłana.");
+      setReplyModalVisible(false);
+      setReplyMessage("");
+      setSelectedMessage(null);
+      fetchNotifications(); // odśwież dane
+    } catch (error) {
+      Alert.alert("Błąd", error.message || "Nie udało się wysłać odpowiedzi.");
+    }
+  };
+
   return (
     <ImageBackground
       source={require("../assets/background.png")}
@@ -128,13 +153,57 @@ export default function NotificationsModeratorScreen({ navigation }) {
                   {msg.first_name} {msg.last_name}
                 </Text>
                 <Text style={styles.reason}>{msg.body}</Text>
-                <TouchableOpacity style={styles.replyButton}>
+                <TouchableOpacity
+                  style={styles.replyButton}
+                  onPress={() => {
+                    setSelectedMessage(msg);
+                    setReplyModalVisible(true);
+                  }}
+                >
                   <Text style={styles.buttonText}>Odpowiedz</Text>
                 </TouchableOpacity>
               </View>
             ))
           )}
         </ScrollView>
+        <Modal visible={replyModalVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                Odpowiedź do {selectedMessage?.first_name}{" "}
+                {selectedMessage?.last_name}
+              </Text>
+              <TextInput
+                style={styles.textArea}
+                multiline
+                numberOfLines={4}
+                placeholder="Wpisz odpowiedź..."
+                value={replyMessage}
+                onChangeText={setReplyMessage}
+              />
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginTop: 10,
+                }}
+              >
+                <TouchableOpacity
+                  style={[styles.acceptButton, { flex: 1, marginRight: 5 }]}
+                  onPress={handleSendReply}
+                >
+                  <Text style={styles.buttonText}>Wyślij</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.rejectButton, { flex: 1, marginLeft: 5 }]}
+                  onPress={() => setReplyModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Anuluj</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
         <BottomNavModerator navigation={navigation} />
       </SafeAreaView>
     </ImageBackground>
@@ -222,5 +291,33 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginBottom: RFValue(12),
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff7e1",
+    borderRadius: 10,
+    padding: RFValue(16),
+    width: "85%",
+  },
+  modalTitle: {
+    fontSize: RFValue(16),
+    fontWeight: "bold",
+    color: "#4a2d0f",
+    marginBottom: RFValue(10),
+  },
+  textArea: {
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: RFValue(10),
+    minHeight: RFValue(80),
+    textAlignVertical: "top",
+    backgroundColor: "#fff",
+    color: "#4a2d0f",
   },
 });
