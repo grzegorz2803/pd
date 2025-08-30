@@ -1695,6 +1695,57 @@ async function addService(cardId, name, hour, points, date, day_of_week, month_f
         throw error;
     }
 }
+async function getModeratorNotifications(cardId) {
+
+    try {
+        /// Krok 1: Pobierz id_parish na podstawie card_id
+        const [userRow] = await pool.execute(
+            `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+            [cardId]
+        );
+
+        if (userRow[0] === undefined) {
+            return res.status(404).json({message: "Nie znaleziono parafii"});
+        }
+
+
+        const parishId = userRow[0].id_parish;
+
+        // Pobierz wszystkie dane z justifications + imię i nazwisko
+        const [excuseRequests] = await pool.execute(
+            `SELECT j.*, u.first_name, u.last_name
+             FROM justifications j
+                      JOIN users u ON j.card_id = u.card_id
+             WHERE u.id_parish = ?
+             ORDER BY j.created_at DESC`,
+            [parishId]
+        );
+
+        // Wiadomości do moderatora
+        const [messages] = await pool.execute(
+            `SELECT m.*, u.first_name, u.last_name
+             FROM messages m
+                      JOIN users u ON m.sender_id = u.card_id
+             WHERE m.recipient_id = 'MODERATOR'
+               AND u.id_parish = ?
+               AND m.is_reply = 0
+               AND m.hidden_for_moderator = 0
+             ORDER BY m.created_at DESC`,
+            [parishId]
+        );
+
+        return {
+            excuseRequests,
+            messages,
+        };
+    }catch (error) {
+        console.error("Błąd pobierania wiadomości", error);
+        throw error;
+    }
+}
+
 module.exports = {
     getUserByCardIdAndIdPar,
     getServicesByTimeStamp,
@@ -1735,4 +1786,5 @@ module.exports = {
     sendModeratorMessage,
     sendReportEmail,
     addService,
+    getModeratorNotifications,
 };

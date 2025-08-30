@@ -39,6 +39,7 @@ const {
     sendModeratorMessage,
     sendReportEmail,
     addService,
+    getModeratorNotifications,
 } = require('./db')
 const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
@@ -394,4 +395,15 @@ router.post("/add-service", authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Wystąpił błąd serwera przy dodawaniu nabożeństwa" });
     }
 });
+router.post("/get-notifications",authenticateToken, async (req, res) => {
+    try {
+         const cardId = req.user.card_id;
+        const notifications = await getModeratorNotifications(cardId);
+        res.status(200).json(notifications);
+    } catch (err) {
+        console.error("Błąd pobierania powiadomień:", err);
+        res.status(500).json({ message: "Błąd serwera przy pobieraniu powiadomień" });
+    }
+});
+
 module.exports = router;
