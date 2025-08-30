@@ -635,7 +635,7 @@ export const addService = async ({
       name,
       hour,
       points: parseInt(points),
-      ...(date && { date }), // tylko jeśli podano
+      ...(date && { date }), 
       ...(day_of_week && { day_of_week }),
       ...(month_from && { month_from }),
       ...(month_to && { month_to }),
