@@ -424,4 +424,21 @@ router.post("/update-justification", authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Wystąpił błąd podczas aktualizacji" });
     }
 });
+router.post("/reply-to-message", authenticateToken, async (req, res) => {
+    try {
+        const moderatorCardId = req.user.card_id;
+        const { replyToId, card_id, body } = req.body;
+
+        if (!replyToId || !card_id || !body) {
+            return res.status(400).json({ message: "Brakuje wymaganych danych." });
+        }
+        console.log(moderatorCardId, replyToId, card_id, body);
+
+        res.status(200).json({ message: "Odpowiedź została wysłana." });
+    } catch (error) {
+        console.error("Błąd podczas wysyłania odpowiedzi:", error);
+        res.status(500).json({ message: "Błąd serwera podczas wysyłania odpowiedzi." });
+    }
+});
+
 module.exports = router;
