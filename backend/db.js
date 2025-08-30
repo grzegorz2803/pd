@@ -1718,7 +1718,7 @@ async function getModeratorNotifications(cardId) {
             `SELECT j.*, u.first_name, u.last_name
              FROM justifications j
                       JOIN users u ON j.card_id = u.card_id
-             WHERE u.id_parish = ?
+             WHERE u.id_parish = ? AND j.status = 'pending'
              ORDER BY j.created_at DESC`,
             [parishId]
         );
@@ -1742,6 +1742,20 @@ async function getModeratorNotifications(cardId) {
         };
     }catch (error) {
         console.error("Błąd pobierania wiadomości", error);
+        throw error;
+    }
+}
+async function updateJustificationStatus(reading_id, card_id, status, reviewed_by) {
+    const query = `
+    UPDATE justifications
+    SET status = ?, reviewed_at = NOW(), reviewed_by = ?
+    WHERE reading_id = ? AND card_id = ?
+  `;
+
+    try {
+        await pool.query(query, [status, reviewed_by, reading_id, card_id]);
+    } catch (error) {
+        console.error("Błąd przy aktualizacji usprawiedliwienia:", error);
         throw error;
     }
 }
@@ -1787,4 +1801,5 @@ module.exports = {
     sendReportEmail,
     addService,
     getModeratorNotifications,
+    updateJustificationStatus,
 };

@@ -40,6 +40,7 @@ const {
     sendReportEmail,
     addService,
     getModeratorNotifications,
+    updateJustificationStatus,
 } = require('./db')
 const { generateReportFile,} = require('./functions');
 const {log} = require("debug");
@@ -405,17 +406,18 @@ router.post("/get-notifications",authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Błąd serwera przy pobieraniu powiadomień" });
     }
 });
-router.put("/update-justification", authenticateToken, async (req, res) => {
+router.post("/update-justification", authenticateToken, async (req, res) => {
+    const cardId = req.user.card_id;
     const { reading_id, card_id, status } = req.body;
 
-    // Walidacja podstawowa
+
     if (!reading_id || !card_id || !["accepted", "rejected"].includes(status)) {
         return res.status(400).json({ message: "Błędne dane wejściowe" });
     }
 
     try {
-      console.log(reading_id, card_id, status);
-       // await updateJustificationStatus(reading_id, card_id, status, req.user.card_id); // req.user.card_id to moderator
+
+        await updateJustificationStatus(reading_id, card_id, status, cardId);
         res.json({ message: "Status usprawiedliwienia zaktualizowany pomyślnie" });
     } catch (err) {
         console.error("Błąd aktualizacji usprawiedliwienia:", err);
