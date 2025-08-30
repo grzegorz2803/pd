@@ -12,7 +12,10 @@ import {
 } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import BottomNavModerator from "../components/BottomNavModerator";
-import { getModeratorNotifications } from "../utils/api";
+import {
+  getModeratorNotifications,
+  updateJustificationStatus,
+} from "../utils/api";
 
 export default function NotificationsModeratorScreen({ navigation }) {
   const [excuseRequests, setExcuseRequests] = useState([]);
