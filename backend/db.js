@@ -1799,6 +1799,184 @@ async function sendReportEmail(buffer, filename, cardId) {
     throw err;
   }
 }
+async function addService(
+  cardId,
+  name,
+  hour,
+  points,
+  date,
+  day_of_week,
+  month_from,
+  month_to
+) {
+  try {
+    /// Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishId = userRow[0].id_parish;
+    const tableName = `${parishId}_services`;
+
+    const query = `
+    INSERT INTO ${tableName}
+    (name, time_service, date_service, day_of_week, month_from, month_to, priority, points)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+    const values = [
+      name,
+      hour,
+      date || null,
+      day_of_week || null,
+      month_from || null,
+      month_to || null,
+      1,
+      points,
+    ];
+    await pool.query(query, values);
+  } catch (error) {
+    console.error("Błąd w AddService:", error);
+    throw error;
+  }
+}
+async function getModeratorNotifications(cardId) {
+  try {
+    /// Krok 1: Pobierz id_parish na podstawie card_id
+    const [userRow] = await pool.execute(
+      `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (userRow[0] === undefined) {
+      return res.status(404).json({ message: "Nie znaleziono parafii" });
+    }
+
+    const parishId = userRow[0].id_parish;
+
+    // Pobierz wszystkie dane z justifications + imię i nazwisko
+    const [excuseRequests] = await pool.execute(
+      `SELECT j.*, u.first_name, u.last_name
+             FROM justifications j
+                      JOIN users u ON j.card_id = u.card_id
+             WHERE u.id_parish = ? AND j.status = 'pending'
+             ORDER BY j.created_at DESC`,
+      [parishId]
+    );
+
+    // Wiadomości do moderatora
+    const [messages] = await pool.execute(
+      `SELECT m.*, u.first_name, u.last_name
+             FROM messages m
+                      JOIN users u ON m.sender_id = u.card_id
+             WHERE m.recipient_id = 'MODERATOR'
+               AND u.id_parish = ?
+               AND m.is_reply = 0
+               AND m.hidden_for_moderator = 0
+             ORDER BY m.created_at DESC`,
+      [parishId]
+    );
+
+    return {
+      excuseRequests,
+      messages,
+    };
+  } catch (error) {
+    console.error("Błąd pobierania wiadomości", error);
+    throw error;
+  }
+}
+async function updateJustificationStatus(
+  reading_id,
+  card_id,
+  status,
+  reviewed_by
+) {
+  /// Krok 1: Pobierz id_parish na podstawie card_id
+  const [userRow] = await pool.execute(
+    `SELECT id_parish
+             FROM users
+             WHERE card_id = ?`,
+    [reviewed_by]
+  );
+
+  if (userRow[0] === undefined) {
+    return res.status(404).json({ message: "Nie znaleziono parafii" });
+  }
+
+  const parishId = userRow[0].id_parish;
+  const tableName = `${parishId}_readings`;
+
+  const query = `
+    UPDATE justifications
+    SET status = ?, reviewed_at = NOW(), reviewed_by = ?
+    WHERE reading_id = ? AND card_id = ?
+  `;
+  const queryPoints = `SELECT points, date_read FROM PRM001_readings WHERE id = ? AND card_id = ?`;
+  const queryUpdatePoints = `UPDATE PRM001_readings SET points = 0 WHERE id = ? AND card_id = ?`;
+
+  try {
+    await pool.query(query, [status, reviewed_by, reading_id, card_id]);
+    const [rows] = await pool.query(queryPoints, [reading_id, card_id]);
+    const points = rows[0].points * -1;
+    const dateRead = rows[0].date_read;
+    const month = String(new Date(dateRead).getMonth() + 1).padStart(2, "0");
+    const year = new Date(dateRead).getFullYear();
+    const tablePointMonth = `${parishId}_${month}_${year}`;
+    const tablePointYear = `${parishId}_${year}`;
+    const query1 = `
+  UPDATE \`${tablePointYear}\`
+  SET points = points + ?
+  WHERE card_id = ?
+`;
+    const query2 = `
+  UPDATE \`${tablePointMonth}\`
+  SET points = points + ?
+  WHERE card_id = ?
+`;
+    await pool.execute(query1, [points, card_id]);
+    await pool.execute(query2, [points, card_id]);
+    await pool.execute(queryUpdatePoints, [reading_id, card_id]);
+  } catch (error) {
+    console.error("Błąd przy aktualizacji usprawiedliwienia:", error);
+    throw error;
+  }
+}
+async function replayToMessage(
+  moderatorCardId,
+  replyToId,
+  recipientCardId,
+  body
+) {
+  try {
+    await pool.execute(
+      `INSERT INTO messages 
+        (sender_id, recipient_id, subject, body, is_reply, reply_to, created_at)
+       VALUES (?, ?, NULL, ?, 1, ?, NOW())`,
+      ["MODERATOR", recipientCardId, body, replyToId]
+    );
+    await pool.execute(
+      `UPDATE messages SET hidden_for_moderator = 1 WHERE id= ?`,
+      [replyToId]
+    );
+  } catch (err) {
+    console.error("Błąd podczas zapisu odpowiedzi w bazie:", err);
+    throw err;
+  }
+}
+
+module.exports = {
+  // ...inne funkcje
+  replayToMessage,
+};
 
 module.exports = {
   getUserByCardIdAndIdPar,
@@ -1839,4 +2017,8 @@ module.exports = {
   getReadingsByDate,
   sendModeratorMessage,
   sendReportEmail,
+  addService,
+  getModeratorNotifications,
+  updateJustificationStatus,
+  replayToMessage,
 };

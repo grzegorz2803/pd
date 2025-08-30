@@ -38,6 +38,10 @@ const {
   getReadingsByDate,
   sendModeratorMessage,
   sendReportEmail,
+  addService,
+  getModeratorNotifications,
+  updateJustificationStatus,
+  replayToMessage,
 } = require("./db");
 const { generateReportFile } = require("./functions");
 const { log } = require("debug");
@@ -398,6 +402,82 @@ router.post("/send-report", authenticateToken, async (req, res) => {
     return res
       .status(500)
       .json({ message: "Błąd serwera podczas wysyłania raportu" });
+  }
+});
+router.post("/add-service", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { name, hour, points, date, day_of_week, month_from, month_to } =
+    req.body;
+
+  // Podstawowa walidacja pól wymaganych
+  if (!name || !hour || points === undefined) {
+    return res
+      .status(400)
+      .json({ message: "Brakuje wymaganych pól (nazwa, godzina, punkty)" });
+  }
+  try {
+    await addService(
+      cardId,
+      name,
+      hour,
+      points,
+      date,
+      day_of_week,
+      month_from,
+      month_to
+    );
+    res.status(200).json({ message: "Dane nabożeństwa dodane pomyślnie" });
+  } catch (err) {
+    console.error("Błąd dodawania nabożeństwa:", err);
+    res
+      .status(500)
+      .json({ message: "Wystąpił błąd serwera przy dodawaniu nabożeństwa" });
+  }
+});
+router.post("/get-notifications", authenticateToken, async (req, res) => {
+  try {
+    const cardId = req.user.card_id;
+    const notifications = await getModeratorNotifications(cardId);
+    res.status(200).json(notifications);
+  } catch (err) {
+    console.error("Błąd pobierania powiadomień:", err);
+    res
+      .status(500)
+      .json({ message: "Błąd serwera przy pobieraniu powiadomień" });
+  }
+});
+router.post("/update-justification", authenticateToken, async (req, res) => {
+  const cardId = req.user.card_id;
+  const { reading_id, card_id, status } = req.body;
+
+  if (!reading_id || !card_id || !["accepted", "rejected"].includes(status)) {
+    return res.status(400).json({ message: "Błędne dane wejściowe" });
+  }
+
+  try {
+    await updateJustificationStatus(reading_id, card_id, status, cardId);
+    res.json({ message: "Status usprawiedliwienia zaktualizowany pomyślnie" });
+  } catch (err) {
+    console.error("Błąd aktualizacji usprawiedliwienia:", err);
+    res.status(500).json({ message: "Wystąpił błąd podczas aktualizacji" });
+  }
+});
+router.post("/reply-to-message", authenticateToken, async (req, res) => {
+  try {
+    const moderatorCardId = req.user.card_id;
+    const { replyToId, card_id, body } = req.body;
+
+    if (!replyToId || !card_id || !body) {
+      return res.status(400).json({ message: "Brakuje wymaganych danych." });
+    }
+    await replayToMessage(moderatorCardId, replyToId, card_id, body);
+
+    res.status(200).json({ message: "Odpowiedź została wysłana." });
+  } catch (error) {
+    console.error("Błąd podczas wysyłania odpowiedzi:", error);
+    res
+      .status(500)
+      .json({ message: "Błąd serwera podczas wysyłania odpowiedzi." });
   }
 });
 
