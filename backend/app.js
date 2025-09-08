@@ -5,11 +5,9 @@ const routes = require('./routes')
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use('/api', routes);
 app.listen(3000, () => {
-    console.log("Serwer działa");
+    console.log("the server is running");
 })
-// module.exports = app; // Zamiast app.listen() eksportujemy aplikację

@@ -42,6 +42,7 @@ const {
   getModeratorNotifications,
   updateJustificationStatus,
   replayToMessage,
+  checkWeeklyAttendance,
 } = require("./db");
 const { generateReportFile } = require("./functions");
 const { log } = require("debug");
@@ -70,7 +71,6 @@ router.get("/about/:version", async (req, res) => {
   const result = await getAboutApp(versionApp);
   res.status(200).json(result);
 });
-// Endpoint do odbioru danych
 router.post("/data", async (req, res) => {
   try {
     const { card_id, timestamp, id_par } = req.body;
@@ -355,7 +355,6 @@ router.post("/send-report", authenticateToken, async (req, res) => {
   }
 
   try {
-    // 1. FAKE `res` żeby przechwycić dane z Twoich funkcji
     let rankingData = null;
     const fakeRes = {
       status(code) {
@@ -374,14 +373,12 @@ router.post("/send-report", authenticateToken, async (req, res) => {
       },
     };
 
-    // 2. Użycie funkcji bez ich przerabiania
     if (type === "monthly") {
       await getRankingMonth(cardId, month, year, fakeRes);
     } else if (type === "yearly") {
       await getRankingYear(cardId, year, fakeRes);
     }
 
-    // 3. Jeśli nie ma danych
     if (!rankingData || rankingData.length === 0) {
       return res
         .status(404)
@@ -409,7 +406,6 @@ router.post("/add-service", authenticateToken, async (req, res) => {
   const { name, hour, points, date, day_of_week, month_from, month_to } =
     req.body;
 
-  // Podstawowa walidacja pól wymaganych
   if (!name || !hour || points === undefined) {
     return res
       .status(400)
@@ -480,5 +476,21 @@ router.post("/reply-to-message", authenticateToken, async (req, res) => {
       .json({ message: "Błąd serwera podczas wysyłania odpowiedzi." });
   }
 });
+router.post("/check-weekly-attendance", async (req, res) => {
+  try {
+    const { id_par } = req.body;
 
+
+    if (!id_par) {
+      return res.status(400).json({ message: "Brakuje id_parish" });
+    }
+
+
+    const result = await checkWeeklyAttendance(id_par);
+    res.status(200).json({ message: "Sprawdzenie zakończone", ...result });
+  } catch (err) {
+    console.error("Błąd w check-weekly-attendance:", err);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
 module.exports = router;

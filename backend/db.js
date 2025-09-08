@@ -52,8 +52,6 @@ async function getServicesByTimeStamp(timeStamp, parID) {
   const [selected_date, selected_time] = timeStamp.split(" ");
   const newTime_0 = subtractMinutes(selected_time, 15);
   const newTime_1 = subtractMinutes(selected_time, -15);
-  //  console.log(newTime_0);
-  //  console.log(newTime_1);
   const tableName = `${parID}_services`;
   const query = `
         SELECT name, time_service, points
@@ -155,10 +153,8 @@ async function getServicesByTimeStamp(timeStamp, parID) {
       newTime_0,
       newTime_1,
     ]);
-    //  console.log(rows);
     return rows[0] !== undefined ? rows[0] : null;
   } catch (error) {
-    //  console.error("Błąd wyszukania nabożeństwa w bazie danych:", error);
     throw error;
   }
 }
@@ -180,8 +176,6 @@ async function addReading(
     tableName,
     true
   );
-  console.log(points);
-  //console.log(cardId, date, time, nameService, timeService, idPar, tableName );
   if (!duplicate) {
     const query = `INSERT INTO \`${tableName}\` (card_id, date_read, time_read, name_service, time_service, points)
                        VALUES (?, ?, ?, ?, ?, ?)`;
@@ -373,7 +367,7 @@ function subtractMinutes(timeString, minutesToSubtract) {
   date.setHours(hours);
   date.setMinutes(minutes - minutesToSubtract);
 
-  return date.toTimeString().slice(0, 8); // Format HH:MM:SS
+  return date.toTimeString().slice(0, 8);
 }
 
 async function getLiturgicalDataToday() {
@@ -944,7 +938,6 @@ async function sendJustificationText(cardId, readingId, message, res) {
 }
 async function getNotification(cardId, res) {
   try {
-    // 1. Pobierz id_parish
     const [userRow] = await pool.execute(
       `SELECT id_parish FROM users WHERE card_id = ?`,
       [cardId]
@@ -953,8 +946,6 @@ async function getNotification(cardId, res) {
       return res.status(404).json({ message: "Użytkownik nie znaleziony" });
     }
     const parishID = userRow[0].id_parish;
-
-    // 2. Usprawiedliwienia
     const [justRows] = await pool.execute(
       `SELECT j.id,
                     DATE_FORMAT(r.date_read, '%d.%m.%Y') AS date,
@@ -987,7 +978,6 @@ async function getNotification(cardId, res) {
       [cardId, cardId]
     );
 
-    // 4. Odpowiedzi moderatora do użytkownika
     const [replies] = await pool.execute(
       `SELECT reply_to, body
        FROM messages
@@ -1007,7 +997,6 @@ async function getNotification(cardId, res) {
       reply: replyMap[msg.id] || null,
     }));
 
-    // 5. Wiadomości od moderatora do tego usera lub do wszystkich
     const [modMessages] = await pool.execute(
       `SELECT id, subject, body
              FROM messages
@@ -1027,7 +1016,6 @@ async function getNotification(cardId, res) {
       body: msg.body,
     }));
 
-    // 6. Zwróć całość
     return res.status(200).json({
       justifications: justRows,
       sentMessages: sentFormatted,
@@ -1070,7 +1058,6 @@ async function deleteNotification(cardId, type, id, res) {
       }
 
       case "mod": {
-        // sprawdź, czy wiadomość istnieje i czy użytkownik ma do niej dostęp
         const [check] = await pool.execute(
           `SELECT id FROM messages 
            WHERE id = ? 
@@ -1086,7 +1073,6 @@ async function deleteNotification(cardId, type, id, res) {
             .json({ message: "Wiadomość nie istnieje lub brak uprawnień." });
         }
 
-        // ukryj wiadomość przez dodanie do tabeli hidden_messages
         await pool.execute(
           `INSERT IGNORE INTO hidden_messages (card_id, message_id) VALUES (?, ?)`,
           [cardId, id]
@@ -1138,7 +1124,7 @@ async function sendMessage(cardId, subject, message, res) {
 }
 async function getRankingAll(cardId, res) {
   try {
-    // Krok 1: pobierz id_parish
+
     const [userRows] = await pool.execute(
       `SELECT id_parish FROM users WHERE card_id = ?`,
       [cardId]
@@ -1150,7 +1136,7 @@ async function getRankingAll(cardId, res) {
 
     const parishID = userRows[0].id_parish;
 
-    // Ustal aktualny miesiąc i rok
+
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear().toString();
@@ -1161,7 +1147,7 @@ async function getRankingAll(cardId, res) {
     let monthlyRanking = [];
     let yearlyRanking = [];
 
-    // Krok 2: Ranking miesięczny
+
     try {
       const [monthlyRows] = await pool.execute(
         `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
@@ -1181,7 +1167,6 @@ async function getRankingAll(cardId, res) {
       console.warn(`Brak tabeli miesięcznej: ${monthlyTable}`);
     }
 
-    // Krok 3: Ranking roczny
     try {
       const [yearlyRows] = await pool.execute(
         `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
@@ -1214,7 +1199,7 @@ async function getRankingAll(cardId, res) {
 }
 async function getRankingMonth(cardId, month, year, res) {
   try {
-    // Pobierz parish_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish FROM users WHERE card_id = ?`,
       [cardId]
@@ -1226,17 +1211,17 @@ async function getRankingMonth(cardId, month, year, res) {
 
     const parishID = userRow[0].id_parish;
     const tableName = `${parishID}_${month}_${year}`;
-    // Sprawdź, czy tabela istnieje
+
     const [tableExists] = await pool.execute(
       `SELECT COUNT(*) AS count FROM information_schema.tables 
        WHERE table_schema = DATABASE() AND table_name = ?`,
       [tableName]
     );
     if (tableExists[0].count === 0) {
-      return res.status(200).json({ monthlyRanking: [] }); // brak danych
+      return res.status(200).json({ monthlyRanking: [] });
     }
 
-    // Pobierz dane z tabeli rankingowej
+
     const [rankingRows] = await pool.execute(
       `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
              FROM \`${tableName}\` r
@@ -1258,7 +1243,7 @@ async function getRankingMonth(cardId, month, year, res) {
 }
 async function getRankingYear(cardId, year, res) {
   try {
-    // Pobierz parish_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish FROM users WHERE card_id = ?`,
       [cardId]
@@ -1270,17 +1255,17 @@ async function getRankingYear(cardId, year, res) {
 
     const parishID = userRow[0].id_parish;
     const tableName = `${parishID}_${year}`;
-    // Sprawdź, czy tabela istnieje
+
     const [tableExists] = await pool.execute(
       `SELECT COUNT(*) AS count FROM information_schema.tables 
        WHERE table_schema = DATABASE() AND table_name = ?`,
       [tableName]
     );
     if (tableExists[0].count === 0) {
-      return res.status(200).json({ yearlyRanking: [] }); // brak danych
+      return res.status(200).json({ yearlyRanking: [] });
     }
 
-    // Pobierz dane z tabeli
+
     const [rankingRows] = await pool.execute(
       `SELECT u.first_name, u.last_name, r.card_id, r.points, r.points_meating, r.sum
              FROM \`${tableName}\` r
@@ -1302,7 +1287,7 @@ async function getRankingYear(cardId, year, res) {
 }
 async function getRecentReadings(cardId, res) {
   try {
-    // Pobierz parish_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish FROM users WHERE card_id = ?`,
       [cardId]
@@ -1366,7 +1351,7 @@ async function getUsersForMeating(cardId, res) {
 }
 async function saveMeatingResults(cardId, results, res) {
   try {
-    // Pobierz parish_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1407,7 +1392,7 @@ async function saveMeatingResults(cardId, results, res) {
     for (const entry of results) {
       const { card_id, points } = entry;
 
-      // --- AKTUALIZACJA TABELI MIESIĘCZNEJ ---
+
       const [monthlyExists] = await pool.execute(
         `SELECT 1 FROM \`${monthlyTable}\` WHERE card_id = ? LIMIT 1`,
         [card_id]
@@ -1428,7 +1413,7 @@ async function saveMeatingResults(cardId, results, res) {
         );
       }
 
-      // --- AKTUALIZACJA TABELI ROCZNEJ ---
+
       const [yearlyExists] = await pool.execute(
         `SELECT 1 FROM \`${yearlyTable}\` WHERE card_id = ? LIMIT 1`,
         [card_id]
@@ -1463,13 +1448,13 @@ async function getScheduleData(cardId) {
     [cardId]
   );
 
-  // Pobierz użytkowników z parafii
+
   const [users] = await pool.execute(
     `SELECT card_id, first_name, last_name FROM users WHERE id_parish = ?`,
     [id_parish]
   );
 
-  // Pobierz wszystkie godziny mszy z tabeli mass_time
+
   const [massTimes] = await pool.execute(
     `SELECT day_of_week, time FROM mass_times WHERE id_parish = ? ORDER BY FIELD(day_of_week, 'Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota','Niedziela'), time`,
     [id_parish]
@@ -1507,7 +1492,7 @@ async function saveScheduleToDB(dateFrom, dateTo, scheduleArray) {
 
 const getRecentReadings30 = async (cardId) => {
   try {
-    // Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1522,7 +1507,7 @@ const getRecentReadings30 = async (cardId) => {
     const parishID = userRow[0].id_parish;
     const tableName = `${parishID}_readings`;
 
-    // Krok 2: Pobierz ostatnie 30 odczytów dla parafii z danymi użytkownika
+
     const [readings] = await pool.query(
       `
       SELECT 
@@ -1540,7 +1525,6 @@ const getRecentReadings30 = async (cardId) => {
       [parishID]
     );
 
-    // Krok 3: Dodaj nazwę dnia tygodnia po polsku
     const dniTygodnia = [
       "Niedziela",
       "Poniedziałek",
@@ -1571,7 +1555,7 @@ const getRecentReadings30 = async (cardId) => {
 
 const getUsersFromParish = async (cardId) => {
   try {
-    // Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1585,7 +1569,7 @@ const getUsersFromParish = async (cardId) => {
 
     const parishID = userRow[0].id_parish;
 
-    // Pobierz użytkowników z tej parafii
+
     const [users] = await pool.execute(
       `SELECT card_id, first_name, last_name
        FROM users
@@ -1593,7 +1577,6 @@ const getUsersFromParish = async (cardId) => {
       [parishID]
     );
 
-    // Zwróć w formacie { id, name }
     return users.map((u) => ({
       id: u.card_id,
       name: `${u.first_name} ${u.last_name}`,
@@ -1605,7 +1588,7 @@ const getUsersFromParish = async (cardId) => {
 };
 const getUserRecentReadings = async (cardId) => {
   try {
-    /// Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1620,7 +1603,7 @@ const getUserRecentReadings = async (cardId) => {
     const parishId = userRow[0].id_parish;
     const tableName = `${parishId}_readings`;
 
-    // Pobierz 5 ostatnich odczytów danego użytkownika
+
     const [rows] = await pool.query(
       `
       SELECT 
@@ -1662,7 +1645,7 @@ const getUserRecentReadings = async (cardId) => {
 };
 const getReadingsByDate = async (cardId, dateObj) => {
   try {
-    /// Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1677,11 +1660,11 @@ const getReadingsByDate = async (cardId, dateObj) => {
     const parishId = userRow[0].id_parish;
     const tableName = `${parishId}_readings`;
 
-    // Przekonwertuj datę na odpowiedni format (np. "2025-07-10")
+
     const date = dateObj.date;
     if (!date) throw new Error("Brak daty w żądaniu");
 
-    // Pobierz wszystkie odczyty dla danej daty z tabeli
+
     const [rows] = await pool.execute(
       `
       SELECT 
@@ -1767,7 +1750,7 @@ async function getEmailByCardId(cardId) {
     );
 
     if (rows.length === 0) {
-      return null; // nie znaleziono
+      return null;
     }
 
     return rows[0].email;
@@ -1810,7 +1793,7 @@ async function addService(
   month_to
 ) {
   try {
-    /// Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1848,7 +1831,7 @@ async function addService(
 }
 async function getModeratorNotifications(cardId) {
   try {
-    /// Krok 1: Pobierz id_parish na podstawie card_id
+
     const [userRow] = await pool.execute(
       `SELECT id_parish
              FROM users
@@ -1862,17 +1845,23 @@ async function getModeratorNotifications(cardId) {
 
     const parishId = userRow[0].id_parish;
 
-    // Pobierz wszystkie dane z justifications + imię i nazwisko
+
     const [excuseRequests] = await pool.execute(
-      `SELECT j.*, u.first_name, u.last_name
-             FROM justifications j
-                      JOIN users u ON j.card_id = u.card_id
-             WHERE u.id_parish = ? AND j.status = 'pending'
-             ORDER BY j.created_at DESC`,
-      [parishId]
+        `SELECT
+           j.*,
+           u.first_name,
+           u.last_name,
+           r.date_read
+         FROM justifications j
+                JOIN users u ON j.card_id = u.card_id
+                JOIN \`${parishId}_readings\` r ON j.reading_id = r.id
+         WHERE u.id_parish = ?
+           AND j.status = 'pending'
+         ORDER BY j.created_at DESC`,
+        [parishId]
     );
 
-    // Wiadomości do moderatora
+
     const [messages] = await pool.execute(
       `SELECT m.*, u.first_name, u.last_name
              FROM messages m
@@ -1900,7 +1889,7 @@ async function updateJustificationStatus(
   status,
   reviewed_by
 ) {
-  /// Krok 1: Pobierz id_parish na podstawie card_id
+
   const [userRow] = await pool.execute(
     `SELECT id_parish
              FROM users
@@ -1972,11 +1961,71 @@ async function replayToMessage(
     throw err;
   }
 }
+async function checkWeeklyAttendance(id_parish) {
+  try {
+    const today = new Date();
+    const currentMonday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+    const lastMonday = new Date(currentMonday);
+    lastMonday.setDate(lastMonday.getDate() - 7);
+    const lastSunday = new Date(lastMonday);
+    lastSunday.setDate(lastSunday.getDate() + 6);
 
-module.exports = {
-  // ...inne funkcje
-  replayToMessage,
-};
+    const formatDate = (date) => date.toISOString().slice(0, 10);
+    const startDate = formatDate(lastMonday);
+    const endDate = formatDate(lastSunday);
+
+    const [users] = await pool.execute(
+        `SELECT card_id FROM users WHERE id_parish = ?`,
+        [id_parish]
+    );
+
+    for (const user of users) {
+      const { card_id } = user;
+
+      const [sundayReads] = await pool.execute(
+          `SELECT * FROM \`${id_parish}_readings\`
+         WHERE card_id = ? AND date_read = ?`,
+          [card_id, endDate]
+      );
+
+
+      const [weekdayReads] = await pool.execute(
+          `SELECT * FROM \`${id_parish}_readings\`
+         WHERE card_id = ? AND date_read BETWEEN ? AND DATE_SUB(?, INTERVAL 1 DAY)`,
+          [card_id, startDate, endDate]
+      );
+
+      const now = new Date();
+      const timeNow = now.toTimeString().slice(0, 8);
+
+      if (sundayReads.length === 0) {
+
+        await pool.execute(
+            `INSERT INTO \`${id_parish}_readings\`
+           (card_id, date_read, time_read, name_service, time_service, points)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+            [card_id, endDate, timeNow, 'Brak obecności w niedzielę', timeNow, -20]
+        );
+      }
+
+      if (weekdayReads.length === 0) {
+
+        await pool.execute(
+            `INSERT INTO \`${id_parish}_readings\`
+           (card_id, date_read, time_read, name_service, time_service, points)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+            [card_id, endDate, timeNow, 'Brak obecności w tygodniu', timeNow, -10]
+        );
+      }
+    }
+
+    return { message: "Sprawdzenie obecności zakończone" };
+  } catch (err) {
+    console.error("Błąd w checkWeeklyAttendanceAndPenalize:", err);
+    throw err;
+  }
+}
+
 
 module.exports = {
   getUserByCardIdAndIdPar,
@@ -2021,4 +2070,5 @@ module.exports = {
   getModeratorNotifications,
   updateJustificationStatus,
   replayToMessage,
+  checkWeeklyAttendance,
 };

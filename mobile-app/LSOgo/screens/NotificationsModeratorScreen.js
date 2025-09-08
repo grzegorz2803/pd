@@ -107,9 +107,10 @@ export default function NotificationsModeratorScreen({ navigation }) {
                   {item.first_name} {item.last_name}
                 </Text>
                 <Text style={styles.info}>
-                  Data: {item.created_at?.split("T")[0]}
+                  Data: {item.date_read?.split("T")[0]}
                 </Text>
                 <Text style={styles.reason}>{item.message}</Text>
+
                 <View style={styles.rowButtons}>
                   <TouchableOpacity
                     style={styles.acceptButton}
